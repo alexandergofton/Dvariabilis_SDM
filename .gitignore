@@ -1,0 +1,8 @@
+climatic_data/
+.claude/
+data/
+figures/
+outputs/final_results.rds
+processed_data/
+references/
+code/*.md

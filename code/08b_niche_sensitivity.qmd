@@ -1,0 +1,291 @@
+---
+title: "Step 8b: Niche Analysis — Variable Set Sensitivity"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+## Overview
+
+The original niche analysis (Step 8) used all 8 variables including Bio1 and Bio7,
+yielding low niche overlap (Schoener's D = 0.233) and borderline similarity tests
+(p = 0.078, 0.064). This script repeats the analysis using the moisture-focused
+variable set (Set C) to test whether cold-tolerance variables diluted the overlap signal.
+
+**Hypothesis:** Removing cold-tolerance variables (Bio1, Bio7) increases Schoener's D
+and renders the similarity test significant, because the remaining variables
+(moisture, warm-season temperature) better capture the ecological gradients
+relevant to both continents.
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(ecospat)
+library(ade4)
+library(sf)
+library(rnaturalearth)
+```
+
+## 1. Load data
+
+```{r}
+#| label: load
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+# Full environmental stacks (all candidates)
+env_stack_M <- rast(file.path(processed_dir, "env_stack_M.tif"))
+env_stack_aus <- rast(file.path(processed_dir, "env_stack_aus.tif"))
+
+# Occurrence data
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+
+# Variable sets
+set_A <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+# Set C: moisture-focused (from 04b)
+set_C_file <- file.path(processed_dir, "selected_variables_setC.txt")
+if (file.exists(set_C_file)) {
+  set_C <- readLines(set_C_file)
+} else {
+  set_C <- c("bio5", "bio10", "bio12", "bio15",
+             "aridity_idx", "PET_seasonality", "vpd_annual")
+  set_C <- intersect(set_C, names(env_stack_M))
+}
+
+cat("Set A (original):", paste(set_A, collapse = ", "), "\n")
+cat("Set C (moisture):", paste(set_C, collapse = ", "), "\n")
+```
+
+## 2. Function: complete niche analysis for a variable set
+
+```{r}
+#| label: niche-function
+
+run_niche_analysis <- function(env_M, env_aus, occ_data, vars, set_name, seed = 42) {
+  cat(sprintf("\n=== Niche Analysis for %s ===\n", set_name))
+
+  # Subset to selected variables
+  env_M_sub <- env_M[[vars]]
+  env_aus_sub <- env_aus[[vars]]
+
+  # Sample backgrounds
+  set.seed(seed)
+  bg_M <- spatSample(env_M_sub, size = 10000, method = "random",
+                     na.rm = TRUE, as.df = TRUE, xy = TRUE)
+  bg_aus <- spatSample(env_aus_sub, size = 10000, method = "random",
+                       na.rm = TRUE, as.df = TRUE, xy = TRUE)
+
+  # PCA on combined environmental space
+  all_env <- bind_rows(
+    bg_M %>% dplyr::select(all_of(vars)) %>% mutate(region = "Native"),
+    bg_aus %>% dplyr::select(all_of(vars)) %>% mutate(region = "Australia")
+  )
+
+  pca_input <- all_env %>% dplyr::select(all_of(vars))
+  pca_result <- dudi.pca(pca_input, scannf = FALSE, nf = 2)
+
+  var_explained <- round(100 * pca_result$eig / sum(pca_result$eig), 1)
+  cat(sprintf("  PC1: %.1f%% | PC2: %.1f%% | Cumulative: %.1f%%\n",
+              var_explained[1], var_explained[2], sum(var_explained[1:2])))
+
+  # Project occurrences
+  occ_pca <- occ_data %>% dplyr::select(all_of(vars))
+  occ_scores <- suprow(pca_result, occ_pca)$li
+
+  n_M <- nrow(bg_M)
+  scores_M <- pca_result$li[1:n_M, ]
+  scores_aus <- pca_result$li[(n_M + 1):nrow(pca_result$li), ]
+
+  # Ecospat grids
+  grid_native <- ecospat.grid.clim.dyn(
+    glob = pca_result$li, glob1 = scores_M, sp = occ_scores, R = 100
+  )
+  grid_aus <- ecospat.grid.clim.dyn(
+    glob = pca_result$li, glob1 = scores_aus, sp = scores_aus, R = 100
+  )
+
+  # Niche overlap
+  overlap <- ecospat.niche.overlap(grid_native, grid_aus, cor = TRUE)
+  cat(sprintf("  Schoener's D: %.3f | Warren's I: %.3f\n", overlap$D, overlap$I))
+
+  # Equivalency test
+  set.seed(seed)
+  equiv <- ecospat.niche.equivalency.test(grid_native, grid_aus, rep = 1000)
+  cat(sprintf("  Equivalency p-value: %.4f\n", equiv$p.D))
+
+  # Similarity tests
+  set.seed(seed)
+  sim_1 <- ecospat.niche.similarity.test(grid_native, grid_aus,
+                                          rep = 1000, rand.type = 2)
+  set.seed(seed)
+  sim_2 <- ecospat.niche.similarity.test(grid_aus, grid_native,
+                                          rep = 1000, rand.type = 2)
+  cat(sprintf("  Similarity (Native -> Aus) p-value: %.4f\n", sim_1$p.D))
+  cat(sprintf("  Similarity (Aus -> Native) p-value: %.4f\n", sim_2$p.D))
+
+  list(
+    overlap = overlap,
+    equiv = equiv,
+    sim_native_to_aus = sim_1,
+    sim_aus_to_native = sim_2,
+    pca = pca_result,
+    var_explained = var_explained,
+    grid_native = grid_native,
+    grid_aus = grid_aus,
+    occ_scores = occ_scores,
+    scores_M = scores_M,
+    scores_aus = scores_aus
+  )
+}
+```
+
+## 3. Run niche analysis for both variable sets
+
+```{r}
+#| label: run-analyses
+#| cache: true
+
+niche_A <- run_niche_analysis(env_stack_M, env_stack_aus, occ_env, set_A, "Set A (original)")
+niche_C <- run_niche_analysis(env_stack_M, env_stack_aus, occ_env, set_C, "Set C (moisture)")
+```
+
+## 4. Comparison table
+
+```{r}
+#| label: comparison
+
+comparison <- tibble(
+  Metric = c("Schoener's D", "Warren's I",
+             "Equivalency p-value",
+             "Similarity (Native -> Aus) p",
+             "Similarity (Aus -> Native) p",
+             "PC1 variance (%)", "PC2 variance (%)"),
+  Set_A = c(
+    round(niche_A$overlap$D, 3),
+    round(niche_A$overlap$I, 3),
+    round(niche_A$equiv$p.D, 4),
+    round(niche_A$sim_native_to_aus$p.D, 4),
+    round(niche_A$sim_aus_to_native$p.D, 4),
+    niche_A$var_explained[1],
+    niche_A$var_explained[2]
+  ),
+  Set_C = c(
+    round(niche_C$overlap$D, 3),
+    round(niche_C$overlap$I, 3),
+    round(niche_C$equiv$p.D, 4),
+    round(niche_C$sim_native_to_aus$p.D, 4),
+    round(niche_C$sim_aus_to_native$p.D, 4),
+    niche_C$var_explained[1],
+    niche_C$var_explained[2]
+  )
+)
+
+cat("======================================================\n")
+cat("  NICHE ANALYSIS COMPARISON\n")
+cat("======================================================\n\n")
+print(comparison, n = Inf)
+
+D_change <- niche_C$overlap$D - niche_A$overlap$D
+cat(sprintf("\nSchoener's D change: %.3f -> %.3f (%+.3f)\n",
+            niche_A$overlap$D, niche_C$overlap$D, D_change))
+
+if (D_change > 0) {
+  cat("FINDING: Removing cold-tolerance variables INCREASES niche overlap.\n")
+  cat("This supports the hypothesis that Bio1/Bio7 diluted the similarity signal.\n")
+} else {
+  cat("NOTE: Removing cold-tolerance variables did not increase overlap.\n")
+  cat("The low overlap may reflect genuine climatic differences in moisture/temperature.\n")
+}
+
+if (niche_C$sim_native_to_aus$p.D < 0.05 & niche_A$sim_native_to_aus$p.D >= 0.05) {
+  cat("\nCRITICAL: Similarity test becomes significant with Set C variables.\n")
+  cat("Australia's climate IS more similar to the native range than expected by chance\n")
+  cat("when assessed using ecologically appropriate variables.\n")
+}
+```
+
+## 5. PCA niche comparison plots
+
+```{r}
+#| label: niche-plots
+#| fig-width: 14
+#| fig-height: 12
+
+png(file.path(figures_dir, "08b_niche_comparison.png"),
+    width = 14, height = 12, units = "in", res = 300)
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+
+# Set A plots
+ecospat.plot.niche(niche_A$grid_native, title = "Set A: Native Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(niche_A$grid_aus, title = "Set A: Australia",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche.dyn(niche_A$grid_native, niche_A$grid_aus,
+                       quant = 0.25, interest = 2,
+                       title = sprintf("Set A: Overlap (D=%.3f)", niche_A$overlap$D),
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+
+# Set C plots
+ecospat.plot.niche(niche_C$grid_native, title = "Set C: Native Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(niche_C$grid_aus, title = "Set C: Australia",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche.dyn(niche_C$grid_native, niche_C$grid_aus,
+                       quant = 0.25, interest = 2,
+                       title = sprintf("Set C: Overlap (D=%.3f)", niche_C$overlap$D),
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+dev.off()
+
+# Display inline
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+ecospat.plot.niche(niche_A$grid_native, title = "Set A: Native Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(niche_A$grid_aus, title = "Set A: Australia",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche.dyn(niche_A$grid_native, niche_A$grid_aus,
+                       quant = 0.25, interest = 2,
+                       title = sprintf("Set A: Overlap (D=%.3f)", niche_A$overlap$D),
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(niche_C$grid_native, title = "Set C: Native Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(niche_C$grid_aus, title = "Set C: Australia",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche.dyn(niche_C$grid_native, niche_C$grid_aus,
+                       quant = 0.25, interest = 2,
+                       title = sprintf("Set C: Overlap (D=%.3f)", niche_C$overlap$D),
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+```
+
+## 6. Save outputs
+
+```{r}
+#| label: save
+
+write_csv(comparison, file.path(processed_dir, "niche_sensitivity_comparison.csv"))
+saveRDS(niche_C, file.path(processed_dir, "niche_analysis_setC.rds"))
+
+sprintf("Saved niche sensitivity analysis outputs")
+```

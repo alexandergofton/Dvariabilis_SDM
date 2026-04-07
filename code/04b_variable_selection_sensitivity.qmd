@@ -1,0 +1,229 @@
+---
+title: "Step 4b: Variable Selection Sensitivity Analysis"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+## Overview
+
+The primary analysis forced retention of Bio1 (annual mean temperature), which
+resulted in VIF values up to 47.25 and a 66.4% MaxEnt contribution that masked
+the importance of other variables. Bio1 encodes cold-winter gradients in
+eastern North America that are ecologically irrelevant to Australian projection.
+
+This script defines **three alternative variable sets** for sensitivity testing:
+
+| Set | Variables | Rationale |
+|-----|-----------|-----------|
+| A (current) | bio1, bio5, bio7, bio10, bio12, bio15, aridity_idx, PET_seasonality | Baseline with Bio1 forced |
+| B (no Bio1) | bio5, bio7, bio10, bio12, bio15, aridity_idx, PET_seasonality | Remove dominant collinear variable |
+| C (moisture-focused) | bio5, bio10, bio12, bio15, aridity_idx, PET_seasonality, vpd_annual | Replace Bio1 + Bio7 with VPD |
+
+Set C aligns with the CLIMEX finding (Halliday & Sutherst 1990) that **low humidity
+is the primary limiting factor** for *D. variabilis* in Australia.
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(usdm)
+```
+
+## 1. Load data
+
+```{r}
+#| label: load
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+
+# Full environmental stacks (all 21 candidate variables)
+env_stack_M <- rast(file.path(processed_dir, "env_stack_M.tif"))
+env_stack_aus <- rast(file.path(processed_dir, "env_stack_aus.tif"))
+
+# Occurrence and background data (contain all 21 variables)
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+bg_env <- readRDS(file.path(processed_dir, "background_with_env.rds"))
+
+# Current selected variables (Set A)
+set_A <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+cat("Available variables in full stack:", paste(names(env_stack_M), collapse = ", "), "\n")
+cat("Current Set A:", paste(set_A, collapse = ", "), "\n")
+```
+
+## 2. Define alternative variable sets
+
+```{r}
+#| label: define-sets
+
+# Set B: Remove Bio1 (dominant collinear variable)
+set_B <- setdiff(set_A, "bio1")
+
+# Set C: Moisture-focused — remove Bio1 and Bio7, add VPD
+# Bio7 (temp annual range) encodes continentality/winter severity
+# VPD (vapor pressure deficit) directly measures desiccation risk
+set_C <- c("bio5", "bio10", "bio12", "bio15",
+           "aridity_idx", "PET_seasonality", "vpd_annual")
+
+# Verify all Set C variables exist in the data
+missing_C <- setdiff(set_C, names(env_stack_M))
+if (length(missing_C) > 0) {
+  cat("WARNING: Variables missing from env stack:", paste(missing_C, collapse = ", "), "\n")
+  cat("Available variables:", paste(names(env_stack_M), collapse = ", "), "\n")
+  set_C <- intersect(set_C, names(env_stack_M))
+  cat("Adjusted Set C:", paste(set_C, collapse = ", "), "\n")
+} else {
+  cat("All Set C variables available\n")
+}
+
+cat("\n--- Variable Sets ---\n")
+cat("Set A (current):", paste(set_A, collapse = ", "), sprintf("(%d vars)\n", length(set_A)))
+cat("Set B (no Bio1):", paste(set_B, collapse = ", "), sprintf("(%d vars)\n", length(set_B)))
+cat("Set C (moisture):", paste(set_C, collapse = ", "), sprintf("(%d vars)\n", length(set_C)))
+```
+
+## 3. VIF analysis for each set
+
+```{r}
+#| label: vif
+
+# Function to compute VIF for a variable set
+compute_vif <- function(data, vars, set_name) {
+  cat(sprintf("\n--- VIF for %s ---\n", set_name))
+  env_cols <- data %>%
+    dplyr::select(all_of(vars)) %>%
+    as.data.frame() %>%
+    na.omit()
+
+  vif_vals <- vif(env_cols)
+  print(vif_vals)
+
+  max_vif <- max(vif_vals$VIF)
+  cat(sprintf("Maximum VIF: %.2f %s\n",
+              max_vif,
+              ifelse(max_vif > 10, "*** EXCEEDS THRESHOLD ***", "(OK)")))
+
+  return(vif_vals)
+}
+
+vif_A <- compute_vif(occ_env, set_A, "Set A (current)")
+vif_B <- compute_vif(occ_env, set_B, "Set B (no Bio1)")
+vif_C <- compute_vif(occ_env, set_C, "Set C (moisture)")
+```
+
+## 4. Pairwise correlations for each set
+
+```{r}
+#| label: correlations
+
+check_correlations <- function(data, vars, set_name) {
+  env_cols <- data %>%
+    dplyr::select(all_of(vars)) %>%
+    as.data.frame() %>%
+    na.omit()
+
+  cor_mat <- cor(env_cols)
+  high_cor <- which(abs(cor_mat) > 0.7 & upper.tri(cor_mat), arr.ind = TRUE)
+
+  cat(sprintf("\n--- High correlations (|r| > 0.7) for %s ---\n", set_name))
+  if (nrow(high_cor) > 0) {
+    for (i in seq_len(nrow(high_cor))) {
+      v1 <- colnames(cor_mat)[high_cor[i, 1]]
+      v2 <- colnames(cor_mat)[high_cor[i, 2]]
+      r <- cor_mat[high_cor[i, 1], high_cor[i, 2]]
+      cat(sprintf("  %s ~ %s: r = %.3f\n", v1, v2, r))
+    }
+  } else {
+    cat("  None — all pairwise |r| < 0.7\n")
+  }
+}
+
+check_correlations(occ_env, set_A, "Set A")
+check_correlations(occ_env, set_B, "Set B")
+check_correlations(occ_env, set_C, "Set C")
+```
+
+## 5. Prepare environmental stacks for each set
+
+```{r}
+#| label: prepare-stacks
+
+# Create subsetted stacks for Set B and Set C
+# (Set A already exists as env_selected_M.tif / env_selected_aus.tif)
+
+# Set B
+env_B_M <- env_stack_M[[set_B]]
+env_B_aus <- env_stack_aus[[set_B]]
+writeRaster(env_B_M, file.path(processed_dir, "env_setB_M.tif"), overwrite = TRUE)
+writeRaster(env_B_aus, file.path(processed_dir, "env_setB_aus.tif"), overwrite = TRUE)
+cat("Set B stacks saved\n")
+
+# Set C
+env_C_M <- env_stack_M[[set_C]]
+env_C_aus <- env_stack_aus[[set_C]]
+writeRaster(env_C_M, file.path(processed_dir, "env_setC_M.tif"), overwrite = TRUE)
+writeRaster(env_C_aus, file.path(processed_dir, "env_setC_aus.tif"), overwrite = TRUE)
+cat("Set C stacks saved\n")
+
+# Save variable lists
+writeLines(set_B, file.path(processed_dir, "selected_variables_setB.txt"))
+writeLines(set_C, file.path(processed_dir, "selected_variables_setC.txt"))
+cat("Variable lists saved\n")
+```
+
+## 6. Summary comparison
+
+```{r}
+#| label: summary
+
+cat("======================================================\n")
+cat("  VARIABLE SET COMPARISON\n")
+cat("======================================================\n\n")
+
+# VIF comparison table
+vif_compare <- tibble(
+  Variable = set_A,
+  VIF_SetA = vif_A$VIF[match(set_A, vif_A$Variables)]
+)
+
+vif_compare <- vif_compare %>%
+  left_join(tibble(Variable = set_B,
+                   VIF_SetB = vif_B$VIF[match(set_B, vif_B$Variables)]),
+            by = "Variable") %>%
+  left_join(tibble(Variable = set_C,
+                   VIF_SetC = vif_C$VIF[match(set_C, vif_C$Variables)]),
+            by = "Variable")
+
+cat("VIF comparison across variable sets:\n")
+print(vif_compare, n = Inf)
+
+cat("\nKey improvements in Set B and C:\n")
+cat("  - Bio1 removed: eliminates VIF > 40 and 66.4% contribution artefact\n")
+cat("  - Set C adds VPD: directly measures desiccation risk (primary CLIMEX limiting factor)\n")
+cat("  - Set C removes Bio7: eliminates continentality/winter severity encoding\n")
+cat("\nExpected outcomes:\n")
+cat("  - MaxEnt-BRT prediction correlation should increase from 0.384 to >0.6\n")
+cat("  - Australian suitable area estimates should converge between models\n")
+cat("  - MESS novelty should decrease, especially in eastern coastal regions\n")
+```

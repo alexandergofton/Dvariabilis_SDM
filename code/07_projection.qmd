@@ -1,0 +1,438 @@
+---
+title: "Step 7: Projection to Australia"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+## Overview
+
+This script projects the fitted MaxEnt and BRT models to Australia to assess
+climatic suitability for *D. variabilis*. Critical steps include:
+
+1. Predict suitability within the native range (validation)
+2. MESS analysis — identify where Australian climate is novel relative to training data
+3. Project both models to Australia
+4. Create binary suitability maps using selected thresholds
+5. MESS-masked predictions (transparent about extrapolation zones)
+6. Calculate area of suitable habitat in Australia
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(sf)
+library(dismo)
+library(gbm)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(predicts)
+```
+
+## 1. Load models and data
+
+```{r}
+#| label: load
+#| cache: false
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+# Models
+maxent_model <- readRDS(file.path(processed_dir, "selected_maxent_model.rds"))
+brt_model <- readRDS(file.path(processed_dir, "brt_model.rds"))
+thresholds <- readRDS(file.path(processed_dir, "model_thresholds.rds"))
+selected_vars <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+# Environmental stacks
+env_M <- rast(file.path(processed_dir, "env_selected_M.tif"))
+env_aus <- rast(file.path(processed_dir, "env_selected_aus.tif"))
+
+# Occurrence and background data
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+bg_env <- readRDS(file.path(processed_dir, "background_with_env.rds"))
+
+# Australia boundary
+aus <- ne_countries(country = "Australia", scale = "medium", returnclass = "sf")
+
+sprintf("Environmental layers — M: %d vars, %d x %d | Australia: %d vars, %d x %d",
+        nlyr(env_M), nrow(env_M), ncol(env_M),
+        nlyr(env_aus), nrow(env_aus), ncol(env_aus))
+```
+
+## 2. Predict within native range (validation)
+
+```{r}
+#| label: predict-native
+#| cache: true
+
+cat("Predicting MaxEnt suitability within native range...\n")
+pred_M_maxent <- terra::predict(env_M, maxent_model, type = "cloglog")
+names(pred_M_maxent) <- "maxent_suitability"
+
+cat("Predicting BRT suitability within native range...\n")
+pred_M_brt <- predict(env_M, brt_model, n.trees = brt_model$n.trees,
+                      type = "response")
+names(pred_M_brt) <- "brt_suitability"
+
+sprintf("Native range prediction complete")
+```
+
+## 3. MESS analysis — Multivariate Environmental Similarity Surface
+
+MESS identifies areas in Australia where climate conditions fall outside the
+range of the training data. MESS < 0 indicates novel (extrapolated) conditions.
+
+```{r}
+#| label: mess
+#| cache: true
+
+# Reference data: environmental values at training points (presence + background)
+ref_data <- bind_rows(
+  occ_env %>% dplyr::select(all_of(selected_vars)),
+  bg_env %>% dplyr::select(all_of(selected_vars))
+)
+
+# Calculate MESS for Australia
+mess_aus <- mess(env_aus, as.data.frame(ref_data))
+names(mess_aus) <- "mess"
+
+# Summary statistics
+mess_vals <- values(mess_aus, na.rm = TRUE)
+n_novel <- sum(mess_vals < 0)
+n_total <- length(mess_vals)
+pct_novel <- round(100 * n_novel / n_total, 1)
+
+sprintf("MESS Analysis for Australia:")
+sprintf("  Total cells: %d", n_total)
+sprintf("  Novel climate (MESS < 0): %d (%.1f%%)", n_novel, pct_novel)
+sprintf("  Analogous climate (MESS >= 0): %d (%.1f%%)", n_total - n_novel, 100 - pct_novel)
+sprintf("  MESS range: %.1f to %.1f", min(mess_vals), max(mess_vals))
+```
+
+## 4. Identify most dissimilar variable (MoD)
+
+For cells with MESS < 0, identify which variable is most responsible for the novelty.
+
+```{r}
+#| label: mod
+
+# Calculate per-variable similarity
+var_similarity <- list()
+for (v in selected_vars) {
+  ref_range <- range(ref_data[[v]], na.rm = TRUE)
+  var_layer <- env_aus[[v]]
+
+  # Similarity: proportion of reference values smaller (0-100 scale)
+  # Negative = below reference range, >100 = above reference range
+  ref_sorted <- sort(ref_data[[v]])
+  n_ref <- length(ref_sorted)
+
+  sim <- app(var_layer, function(x) {
+    vapply(x, function(xi) {
+      if (is.na(xi)) return(NA_real_)
+      if (xi < ref_range[1]) return(100 * (xi - ref_range[1]) / (ref_range[2] - ref_range[1]))
+      if (xi > ref_range[2]) return(100 * (ref_range[2] - xi) / (ref_range[2] - ref_range[1]))
+      p <- sum(ref_sorted <= xi) / n_ref
+      min(p, 1 - p) * 200
+    }, numeric(1))
+  })
+  var_similarity[[v]] <- sim
+}
+
+var_sim_stack <- rast(var_similarity)
+names(var_sim_stack) <- selected_vars
+
+# Most dissimilar variable (minimum similarity at each cell)
+mod_layer <- which.min(var_sim_stack)
+names(mod_layer) <- "most_dissimilar_var"
+
+sprintf("Most dissimilar variable analysis complete")
+```
+
+## 5. Project to Australia
+
+```{r}
+#| label: predict-australia
+#| cache: true
+
+cat("Projecting MaxEnt to Australia...\n")
+pred_aus_maxent <- terra::predict(env_aus, maxent_model, type = "cloglog", clamp = TRUE)
+names(pred_aus_maxent) <- "maxent_suitability"
+
+cat("Projecting BRT to Australia...\n")
+pred_aus_brt <- terra::predict(env_aus, brt_model, n.trees = brt_model$n.trees,
+                               type = "response", na.rm = TRUE)
+names(pred_aus_brt) <- "brt_suitability"
+
+# Ensemble (mean of both models)
+pred_aus_ensemble <- mean(pred_aus_maxent, pred_aus_brt)
+names(pred_aus_ensemble) <- "ensemble_suitability"
+
+sprintf("Projection complete")
+```
+
+## 6. Binary suitability maps
+
+Apply thresholds to create presence/absence maps.
+
+```{r}
+#| label: binary-maps
+
+# MaxEnt binary (using MaxSS threshold)
+maxent_thresh_val <- thresholds$maxent$maxss
+maxent_binary <- pred_aus_maxent >= maxent_thresh_val
+names(maxent_binary) <- "maxent_binary"
+
+# BRT binary
+brt_thresh_val <- thresholds$brt$maxss
+brt_binary <- pred_aus_brt >= brt_thresh_val
+names(brt_binary) <- "brt_binary"
+
+# Ensemble binary (using mean of thresholds)
+ensemble_thresh <- mean(maxent_thresh_val, brt_thresh_val)
+ensemble_binary <- pred_aus_ensemble >= ensemble_thresh
+names(ensemble_binary) <- "ensemble_binary"
+
+sprintf("Binary maps created (MaxEnt threshold: %.3f, BRT threshold: %.3f)",
+        maxent_thresh_val, brt_thresh_val)
+```
+
+## 7. MESS-masked binary maps
+
+Mask areas with novel climate (MESS < 0) in the binary predictions.
+
+```{r}
+#| label: mess-mask
+
+mess_mask <- mess_aus >= 0  # TRUE where climate is analogous
+
+maxent_binary_masked <- maxent_binary * mess_mask
+brt_binary_masked <- brt_binary * mess_mask
+ensemble_binary_masked <- ensemble_binary * mess_mask
+
+# Set masked areas to NA for visualisation
+maxent_binary_masked[mess_mask == 0] <- NA
+brt_binary_masked[mess_mask == 0] <- NA
+ensemble_binary_masked[mess_mask == 0] <- NA
+
+sprintf("MESS-masked binary maps created (%.1f%% of cells masked as novel climate)", pct_novel)
+```
+
+## 8. Calculate suitable habitat area
+
+```{r}
+#| label: area-calc
+
+# Use terra::cellSize for accurate area calculation
+cell_areas <- cellSize(maxent_binary, unit = "km")
+
+# MaxEnt suitable area
+maxent_suitable_area <- sum(values(cell_areas * maxent_binary), na.rm = TRUE)
+maxent_suitable_area_masked <- sum(values(cell_areas * (maxent_binary_masked == 1)), na.rm = TRUE)
+
+# BRT suitable area
+brt_suitable_area <- sum(values(cell_areas * brt_binary), na.rm = TRUE)
+brt_suitable_area_masked <- sum(values(cell_areas * (brt_binary_masked == 1)), na.rm = TRUE)
+
+# Ensemble suitable area
+ensemble_suitable_area <- sum(values(cell_areas * ensemble_binary), na.rm = TRUE)
+
+# Total Australia land area
+aus_total_area <- sum(values(cell_areas * !is.na(pred_aus_maxent)), na.rm = TRUE)
+
+cat("--- Suitable Habitat Area in Australia ---\n")
+sprintf("Total land area: %.0f km2", aus_total_area)
+sprintf("")
+sprintf("MaxEnt — Suitable: %.0f km2 (%.1f%% of Australia)",
+        maxent_suitable_area, 100 * maxent_suitable_area / aus_total_area)
+sprintf("MaxEnt — Suitable (MESS-masked): %.0f km2 (%.1f%%)",
+        maxent_suitable_area_masked, 100 * maxent_suitable_area_masked / aus_total_area)
+sprintf("")
+sprintf("BRT — Suitable: %.0f km2 (%.1f%%)",
+        brt_suitable_area, 100 * brt_suitable_area / aus_total_area)
+sprintf("BRT — Suitable (MESS-masked): %.0f km2 (%.1f%%)",
+        brt_suitable_area_masked, 100 * brt_suitable_area_masked / aus_total_area)
+sprintf("")
+sprintf("Ensemble — Suitable: %.0f km2 (%.1f%%)",
+        ensemble_suitable_area, 100 * ensemble_suitable_area / aus_total_area)
+```
+
+## 9. Visualisation — Australia suitability maps
+
+```{r}
+#| label: maps
+#| fig-width: 14
+#| fig-height: 16
+
+aus_sf <- ne_countries(
+  country = "Australia",
+  scale = "medium",
+  returnclass = "sf"
+)
+states <- ne_states(country = "Australia", returnclass = "sf")
+
+# Convert rasters to data frames for ggplot
+maxent_df <- as.data.frame(pred_aus_maxent, xy = TRUE) %>%
+  filter(!is.na(maxent_suitability))
+brt_df <- as.data.frame(pred_aus_brt, xy = TRUE) %>%
+  filter(!is.na(brt_suitability))
+mess_df <- as.data.frame(mess_aus, xy = TRUE) %>% filter(!is.na(mess))
+ensemble_df <- as.data.frame(pred_aus_ensemble, xy = TRUE) %>%
+  filter(!is.na(ensemble_suitability))
+
+# Common theme
+map_theme <- theme_minimal(base_size = 11) +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(size = 13, face = "bold"),
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  )
+
+# MaxEnt suitability map
+p1 <- ggplot() +
+  geom_raster(data = maxent_df, aes(x = x, y = y, fill = maxent_suitability)) +
+  geom_sf(data = states, fill = NA, colour = "grey40", linewidth = 0.3) +
+  geom_sf(data = aus_sf, fill = NA, colour = "black", linewidth = 0.5) +
+  scale_fill_viridis_c(
+    option = "inferno",
+    limits = c(0, 1),
+    name = "Suitability"
+  ) +
+  labs(title = "A) MaxEnt — Predicted Habitat Suitability") +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  map_theme
+
+# BRT suitability map
+p2 <- ggplot() +
+  geom_raster(data = brt_df, aes(x = x, y = y, fill = brt_suitability)) +
+  geom_sf(data = states, fill = NA, colour = "grey40", linewidth = 0.3) +
+  geom_sf(data = aus_sf, fill = NA, colour = "black", linewidth = 0.5) +
+  scale_fill_viridis_c(
+    option = "inferno",
+    limits = c(0, 1),
+    name = "Suitability",
+    oob = scales::squish
+  ) +
+  labs(title = "B) BRT — Predicted Habitat Suitability") +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  map_theme
+
+# MESS map
+p3 <- ggplot() +
+  geom_raster(data = mess_df, aes(x = x, y = y, fill = mess)) +
+  geom_sf(data = states, fill = NA, colour = "grey40", linewidth = 0.3) +
+  geom_sf(data = aus_sf, fill = NA, colour = "black", linewidth = 0.5) +
+  scale_fill_gradient2(
+    low = "#D55E00",
+    mid = "white",
+    high = "#0072B2",
+    midpoint = 0,
+    name = "MESS",
+    limits = c(min(mess_df$mess), max(mess_df$mess))
+  ) +
+  labs(
+    title = "C) MESS — Multivariate Environmental Similarity",
+    subtitle = "Red = novel climate (extrapolation), Blue = analogous climate"
+  ) +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  map_theme
+
+# Ensemble suitability map
+p4 <- ggplot() +
+  geom_raster(
+    data = ensemble_df,
+    aes(x = x, y = y, fill = ensemble_suitability)
+  ) +
+  geom_sf(data = states, fill = NA, colour = "grey40", linewidth = 0.3) +
+  geom_sf(data = aus_sf, fill = NA, colour = "black", linewidth = 0.5) +
+  scale_fill_viridis_c(
+    option = "inferno",
+    limits = c(0, 1),
+    name = "Suitability"
+  ) +
+  labs(
+    title = "D) Ensemble (MaxEnt + BRT mean) — Predicted Habitat Suitability"
+  ) +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  map_theme
+
+library(patchwork)
+combined_plot <- (p1 + p2) / (p3 + p4)
+
+combined_plot +
+  plot_annotation(
+    title = expression(
+      italic(
+        "Dermacentor variabilis"
+      ) ~ "— Projected Climatic Suitability in Australia"
+    ),
+    theme = theme(plot.title = element_text(size = 16, face = "bold"))
+  )
+
+ggsave(
+  file.path(figures_dir, "07_australia_projection.png"),
+  width = 14,
+  height = 16,
+  dpi = 300
+)
+```
+
+## 10. Save outputs
+
+```{r}
+#| label: save
+
+# Continuous predictions
+writeRaster(pred_aus_maxent, file.path(processed_dir, "pred_aus_maxent.tif"), overwrite = TRUE)
+writeRaster(pred_aus_brt, file.path(processed_dir, "pred_aus_brt.tif"), overwrite = TRUE)
+writeRaster(pred_aus_ensemble, file.path(processed_dir, "pred_aus_ensemble.tif"), overwrite = TRUE)
+
+# Binary predictions
+writeRaster(maxent_binary, file.path(processed_dir, "pred_aus_maxent_binary.tif"), overwrite = TRUE)
+writeRaster(brt_binary, file.path(processed_dir, "pred_aus_brt_binary.tif"), overwrite = TRUE)
+
+# MESS
+writeRaster(mess_aus, file.path(processed_dir, "mess_australia.tif"), overwrite = TRUE)
+
+# Native range predictions
+writeRaster(pred_M_maxent, file.path(processed_dir, "pred_M_maxent.tif"), overwrite = TRUE)
+writeRaster(pred_M_brt, file.path(processed_dir, "pred_M_brt.tif"), overwrite = TRUE)
+
+# Area summary
+area_summary <- tibble(
+  model = c("MaxEnt", "MaxEnt (MESS-masked)", "BRT", "BRT (MESS-masked)", "Ensemble"),
+  suitable_area_km2 = c(maxent_suitable_area, maxent_suitable_area_masked,
+                        brt_suitable_area, brt_suitable_area_masked,
+                        ensemble_suitable_area),
+  pct_australia = round(c(maxent_suitable_area, maxent_suitable_area_masked,
+                          brt_suitable_area, brt_suitable_area_masked,
+                          ensemble_suitable_area) / aus_total_area * 100, 1)
+)
+write_csv(area_summary, file.path(processed_dir, "suitable_area_summary.csv"))
+
+sprintf("Saved all projection outputs, MESS analysis, and area summaries")
+```

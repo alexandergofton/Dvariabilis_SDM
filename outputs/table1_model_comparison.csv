@@ -1,0 +1,9 @@
+Metric,MaxEnt,BRT
+Training AUC,0.851,0.888
+Validation AUC (CV),0.824,0.591
+Boyce Index,1,1
+MaxSS Threshold,0.499,0.521
+TSS at MaxSS,0.565,0.629
+Sensitivity at MaxSS,0.848,0.888
+Specificity at MaxSS,0.718,0.741
+10% Training Presence Threshold,0.428,0.494

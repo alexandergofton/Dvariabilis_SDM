@@ -1,0 +1,6 @@
+metric,value
+Schoener's D,0.2722234527217199
+Warren's I,0.48971673404967286
+Equivalency p-value,9.99000999000999e-4
+Similarity p-value (Native->Aus),0.17682317682317683
+Similarity p-value (Aus->Native),0.1068931068931069

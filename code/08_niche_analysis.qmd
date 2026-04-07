@@ -1,0 +1,395 @@
+---
+title: "Step 8: Niche Analysis"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+---
+
+## Overview
+
+This script performs niche analysis to directly answer the core research question:
+**Does Australia have the climatic conditions that *D. variabilis* requires?**
+
+We compare the environmental space of the species' native range (eastern N. America)
+with the environmental space available in Australia using:
+
+1. **PCA-based niche comparison** — visualise niche overlap in environmental space
+2. **Ecospat niche overlap** — Schoener's D and Warren's I metrics
+3. **Niche equivalency test** — are the niches statistically equivalent?
+4. **Niche similarity test** — are the niches more similar than expected by chance?
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(ecospat)
+library(ade4)
+library(sf)
+library(rnaturalearth)
+```
+
+## 1. Load data
+
+```{r}
+#| label: load
+#| cache: false
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+# Environmental stacks
+env_M <- rast(file.path(processed_dir, "env_selected_M.tif"))
+env_aus <- rast(file.path(processed_dir, "env_selected_aus.tif"))
+
+# Occurrence data
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+selected_vars <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+sprintf("Selected variables: %s", paste(selected_vars, collapse = ", "))
+```
+
+## 2. Sample environmental backgrounds
+
+Sample random points from both extents to characterise the available environmental
+space in each region.
+
+```{r}
+#| label: sample-backgrounds
+
+set.seed(42)
+
+# Sample background from native range (M)
+bg_M <- spatSample(env_M, size = 10000, method = "random", na.rm = TRUE,
+                   as.df = TRUE, xy = TRUE)
+cat("Native range background samples:", nrow(bg_M), "\n")
+
+# Sample background from Australia
+bg_aus <- spatSample(env_aus, size = 10000, method = "random", na.rm = TRUE,
+                     as.df = TRUE, xy = TRUE)
+cat("Australia background samples:", nrow(bg_aus), "\n")
+```
+
+## 3. PCA-based niche comparison
+
+Perform PCA on the combined environmental space, then project both regions
+and the species' occurrences onto the PCA axes.
+
+```{r}
+#| label: pca
+#| fig-width: 12
+#| fig-height: 6
+
+# Combine all environmental data for PCA
+all_env <- bind_rows(
+  bg_M %>% dplyr::select(all_of(selected_vars)) %>% mutate(region = "Native_Range"),
+  bg_aus %>% dplyr::select(all_of(selected_vars)) %>% mutate(region = "Australia")
+)
+
+# Run PCA on environmental variables (excluding region label)
+pca_input <- all_env %>% dplyr::select(all_of(selected_vars))
+pca_result <- dudi.pca(pca_input, scannf = FALSE, nf = 2)
+
+# Variance explained
+var_explained <- round(100 * pca_result$eig / sum(pca_result$eig), 1)
+cat("PCA variance explained:\n")
+sprintf("  PC1: %.1f%%", var_explained[1])
+sprintf("  PC2: %.1f%%", var_explained[2])
+sprintf("  Cumulative (PC1+PC2): %.1f%%", sum(var_explained[1:2]))
+
+# Variable loadings
+cat("\nVariable loadings:\n")
+print(round(pca_result$c1, 3))
+
+# Project occurrence points onto PCA space
+occ_pca <- occ_env %>%
+  dplyr::select(all_of(selected_vars))
+occ_scores <- suprow(pca_result, occ_pca)$li
+
+# Get PCA scores for each region
+n_M <- nrow(bg_M)
+n_aus <- nrow(bg_aus)
+scores_M <- pca_result$li[1:n_M, ]
+scores_aus <- pca_result$li[(n_M + 1):(n_M + n_aus), ]
+
+# Plot PCA niche space
+pca_plot_data <- bind_rows(
+  scores_M %>% mutate(region = "Native Range (M)"),
+  scores_aus %>% mutate(region = "Australia"),
+  occ_scores %>% mutate(region = "D. variabilis occurrences")
+)
+
+ggplot() +
+  # Background environmental space
+  geom_point(data = pca_plot_data %>% filter(region != "D. variabilis occurrences"),
+             aes(x = Axis1, y = Axis2, colour = region),
+             size = 0.3, alpha = 0.2) +
+  # Species occurrences
+  geom_point(data = pca_plot_data %>% filter(region == "D. variabilis occurrences"),
+             aes(x = Axis1, y = Axis2),
+             colour = "#D55E00", size = 0.6, alpha = 0.2) +
+  scale_colour_manual(values = c("Native Range (M)" = "#0072B2", "Australia" = "#009E73")) +
+  labs(
+    title = expression(italic("D. variabilis") ~ "— Niche Space: Native Range vs Australia"),
+    subtitle = sprintf("PC1: %.1f%% | PC2: %.1f%% variance explained",
+                       var_explained[1], var_explained[2]),
+    x = sprintf("PC1 (%.1f%%)", var_explained[1]),
+    y = sprintf("PC2 (%.1f%%)", var_explained[2]),
+    colour = "Environmental Space"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top") +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 0.8)))
+
+ggsave(
+  file.path(figures_dir, "08_niche_pca.png"),
+  width = 6, height = 6, dpi = 300
+)
+```
+
+## 4. Ecospat niche quantification
+
+Use ecospat to create gridded niche representations and calculate overlap.
+
+```{r}
+#| label: ecospat-grid
+
+# Create ecospat grids
+# Species occurrence density in PCA space (native range)
+grid_native <- ecospat.grid.clim.dyn(
+  glob = pca_result$li,               # Global PCA space (all backgrounds)
+  glob1 = scores_M,                   # Native range background
+  sp = occ_scores,                    # Species occurrences
+  R = 100                             # Grid resolution
+)
+
+# Australian environmental space (no occurrences — use full background as "available")
+grid_aus <- ecospat.grid.clim.dyn(
+  glob = pca_result$li,
+  glob1 = scores_aus,                 # Australia background
+  sp = scores_aus,                    # Use all Australia as "potential" space
+  R = 100
+)
+```
+
+## 5. Niche overlap metrics
+
+```{r}
+#| label: niche-overlap
+
+# Schoener's D and Warren's I
+overlap <- ecospat.niche.overlap(grid_native, grid_aus, cor = TRUE)
+
+sprintf("Niche overlap metrics:")
+sprintf("  Schoener's D: %.3f", overlap$D)
+sprintf("  Warren's I: %.3f", overlap$I)
+
+cat("\nInterpretation:\n")
+if (overlap$D > 0.6) {
+  cat("  High overlap — Australia has substantial climatic similarity to the native range\n")
+} else if (overlap$D > 0.3) {
+  cat("  Moderate overlap — partial climatic similarity; some suitable areas likely exist\n")
+} else {
+  cat("  Low overlap — limited climatic similarity; suitable areas may be restricted\n")
+}
+```
+
+## 6. Niche equivalency test
+
+Tests whether the niches of the two regions are statistically equivalent
+(null: niches are equivalent, randomly drawn from the same pool).
+
+```{r}
+#| label: equivalency
+#| cache: true
+
+set.seed(42)
+equiv_test <- ecospat.niche.equivalency.test(
+  grid_native, grid_aus,
+  rep = 1000
+)
+
+cat("Niche Equivalency Test:\n")
+sprintf("  Observed D: %.3f", equiv_test$obs$D)
+sprintf("  P-value (D): %.4f", equiv_test$p.D)
+sprintf("  Observed I: %.3f", equiv_test$obs$I)
+sprintf("  P-value (I): %.4f", equiv_test$p.I)
+
+if (equiv_test$p.D < 0.05) {
+  cat("  Result: Niches are NOT equivalent (p < 0.05)\n")
+} else {
+  cat("  Result: Cannot reject niche equivalency (p >= 0.05)\n")
+}
+```
+
+## 7. Niche similarity test
+
+Tests whether the niches are more similar than expected by chance
+(a less stringent test than equivalency).
+
+```{r}
+#| label: similarity
+#| cache: true
+
+set.seed(42)
+
+# Similarity test: native range -> Australia
+sim_test_1 <- ecospat.niche.similarity.test(
+  grid_native, grid_aus,
+  rep = 1000,
+  rand.type = 2              # Randomize within the available environment
+)
+
+cat("Niche Similarity Test (Native Range -> Australia):\n")
+sprintf("  Observed D: %.3f", sim_test_1$obs$D)
+sprintf("  P-value (D): %.4f", sim_test_1$p.D)
+
+if (sim_test_1$p.D < 0.05) {
+  cat("  Result: Niches are MORE similar than expected by chance (p < 0.05)\n")
+  cat("  Interpretation: Australia has climate conditions that are significantly\n")
+  cat("  similar to the native range of D. variabilis\n")
+} else {
+  cat("  Result: Cannot conclude niches are more similar than random (p >= 0.05)\n")
+}
+
+# Similarity test: Australia -> Native range
+sim_test_2 <- ecospat.niche.similarity.test(
+  grid_aus, grid_native,
+  rep = 1000,
+  rand.type = 2
+)
+
+cat("\nNiche Similarity Test (Australia -> Native Range):\n")
+sprintf("  Observed D: %.3f", sim_test_2$obs$D)
+sprintf("  P-value (D): %.4f", sim_test_2$p.D)
+```
+
+## 8. Ecospat niche plots
+
+```{r}
+#| label: ecospat-plots
+#| fig-width: 14
+#| fig-height: 5
+
+png(file.path(figures_dir, "08_ecospat_niche_plots.png"),
+    width = 14, height = 5, units = "in", res = 300)
+par(mfrow = c(1, 3))
+
+# Native range niche
+ecospat.plot.niche(grid_native, title = "Native Range Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+
+# Australia environmental space
+ecospat.plot.niche(grid_aus, title = "Australia Environmental Space",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+
+# Niche overlap
+ecospat.plot.niche.dyn(grid_native, grid_aus,
+                       quant = 0.25,
+                       interest = 2,  # Show Australia's perspective
+                       title = "Niche Overlap",
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+dev.off()
+
+# Display inline
+par(mfrow = c(1, 3))
+ecospat.plot.niche(grid_native, title = "Native Range Niche",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche(grid_aus, title = "Australia Environmental Space",
+                   name.axis1 = "PC1", name.axis2 = "PC2")
+ecospat.plot.niche.dyn(grid_native, grid_aus,
+                       quant = 0.25, interest = 2,
+                       title = "Niche Overlap",
+                       name.axis1 = "PC1", name.axis2 = "PC2")
+```
+
+## 9. Summary and interpretation
+
+```{r}
+#| label: summary
+
+cat("======================================================\n")
+cat("  NICHE ANALYSIS SUMMARY\n")
+cat("  Does Australia have suitable climate for D. variabilis?\n")
+cat("======================================================\n\n")
+
+sprintf("Schoener's D: %.3f", overlap$D)
+sprintf("Warren's I: %.3f", overlap$I)
+sprintf("Equivalency test p-value: %.4f", equiv_test$p.D)
+sprintf("Similarity test p-value (Native -> Aus): %.4f", sim_test_1$p.D)
+sprintf("Similarity test p-value (Aus -> Native): %.4f", sim_test_2$p.D)
+
+cat("\n--- Key Findings ---\n")
+
+# Summarise findings
+area_summary <- read_csv(file.path(processed_dir, "suitable_area_summary.csv"),
+                         show_col_types = FALSE)
+cat("\nPredicted suitable area in Australia:\n")
+print(area_summary, n = Inf)
+
+cat("\n--- Conclusion ---\n")
+cat("The niche analysis and model projections together indicate whether\n")
+cat("Australia has the climatic conditions required for D. variabilis.\n")
+cat("Areas of analogous climate (MESS >= 0) with high predicted suitability\n")
+cat("represent the most reliable assessment of potential establishment risk.\n")
+```
+
+## 10. Save outputs
+
+```{r}
+#| label: save
+
+# Save niche analysis results
+niche_results <- list(
+  overlap = overlap,
+  equivalency = list(
+    obs_D = equiv_test$obs$D,
+    p_D = equiv_test$p.D,
+    obs_I = equiv_test$obs$I,
+    p_I = equiv_test$p.I
+  ),
+  similarity_native_to_aus = list(
+    obs_D = sim_test_1$obs$D,
+    p_D = sim_test_1$p.D
+  ),
+  similarity_aus_to_native = list(
+    obs_D = sim_test_2$obs$D,
+    p_D = sim_test_2$p.D
+  ),
+  pca_variance = var_explained[1:2]
+)
+saveRDS(niche_results, file.path(processed_dir, "niche_analysis_results.rds"))
+
+# PCA results
+saveRDS(pca_result, file.path(processed_dir, "pca_result.rds"))
+
+# Niche results summary CSV
+niche_summary <- tibble(
+  metric = c("Schoener's D", "Warren's I",
+             "Equivalency p-value", "Similarity p-value (Native->Aus)",
+             "Similarity p-value (Aus->Native)"),
+  value = c(overlap$D, overlap$I,
+            equiv_test$p.D, sim_test_1$p.D, sim_test_2$p.D)
+)
+write_csv(niche_summary, file.path(processed_dir, "niche_overlap_summary.csv"))
+
+sprintf("Saved niche analysis results to processed_data/")
+```
