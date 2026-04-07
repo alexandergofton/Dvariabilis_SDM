@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Alexander W. Gofton">
+<meta name="dcterms.date" content="2026-04-07">
+
+<title>Step 4: Variable Selection</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="04_variable_selection_files/libs/clipboard/clipboard.min.js"></script>
+<script src="04_variable_selection_files/libs/quarto-html/quarto.js"></script>
+<script src="04_variable_selection_files/libs/quarto-html/popper.min.js"></script>
+<script src="04_variable_selection_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="04_variable_selection_files/libs/quarto-html/anchor.min.js"></script>
+<link href="04_variable_selection_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="04_variable_selection_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="04_variable_selection_files/libs/quarto-html/quarto-syntax-highlighting-dark-8ea72dc5fed832574809a9c94082fbbb.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="04_variable_selection_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="04_variable_selection_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="04_variable_selection_files/libs/bootstrap/bootstrap-0e8d46d49afdcf27eef7cf8bb79e73b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="04_variable_selection_files/libs/bootstrap/bootstrap-dark-1666a84f562704a6c566dacccee1c77b.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#project-paths-and-data" id="toc-project-paths-and-data" class="nav-link" data-scroll-target="#project-paths-and-data">1. Project paths and data</a></li>
+  <li><a href="#pairwise-correlation-matrix" id="toc-pairwise-correlation-matrix" class="nav-link" data-scroll-target="#pairwise-correlation-matrix">2. Pairwise correlation matrix</a></li>
+  <li><a href="#identify-highly-correlated-pairs" id="toc-identify-highly-correlated-pairs" class="nav-link" data-scroll-target="#identify-highly-correlated-pairs">3. Identify highly correlated pairs</a></li>
+  <li><a href="#vif-based-variable-reduction" id="toc-vif-based-variable-reduction" class="nav-link" data-scroll-target="#vif-based-variable-reduction">4. VIF-based variable reduction</a></li>
+  <li><a href="#preliminary-maxent-jackknife-variable-importance" id="toc-preliminary-maxent-jackknife-variable-importance" class="nav-link" data-scroll-target="#preliminary-maxent-jackknife-variable-importance">5. Preliminary MaxEnt — jackknife variable importance</a></li>
+  <li><a href="#final-variable-selection" id="toc-final-variable-selection" class="nav-link" data-scroll-target="#final-variable-selection">6. Final variable selection</a></li>
+  <li><a href="#variable-descriptions-and-justification" id="toc-variable-descriptions-and-justification" class="nav-link" data-scroll-target="#variable-descriptions-and-justification">7. Variable descriptions and justification</a></li>
+  <li><a href="#prepare-final-environmental-stacks" id="toc-prepare-final-environmental-stacks" class="nav-link" data-scroll-target="#prepare-final-environmental-stacks">8. Prepare final environmental stacks</a></li>
+  <li><a href="#save-outputs" id="toc-save-outputs" class="nav-link" data-scroll-target="#save-outputs">9. Save outputs</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="04_variable_selection.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Step 4: Variable Selection</h1>
+<p class="subtitle lead"><em>Dermacentor variabilis</em> Species Distribution Model</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alexander W. Gofton </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 7, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>This script selects the final set of environmental variables for the <em>D. variabilis</em> SDM using a combination of:</p>
+<ol type="1">
+<li><strong>Pairwise correlation analysis</strong> — identify and resolve highly correlated pairs (|r| &gt; 0.7)</li>
+<li><strong>Variance Inflation Factor (VIF)</strong> — iteratively remove variables with VIF &gt; 10</li>
+<li><strong>Forced retention of Bio1</strong> — annual mean temperature is the dominant predictor in all published <em>D. variabilis</em> SDMs (&gt;74% contribution in Alkishe et al.&nbsp;2020)</li>
+<li><strong>Preliminary MaxEnt jackknife</strong> — assess variable contribution and permutation importance</li>
+<li><strong>Target: 5-8 final variables</strong></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(usdm)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrplot)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ENMeval)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="project-paths-and-data" class="level2">
+<h2 class="anchored" data-anchor-id="project-paths-and-data">1. Project paths and data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>base_dir <span class="ot">&lt;-</span> <span class="st">"~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>processed_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"processed_data"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>figures_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"figures"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Load extracted environmental values at occurrence and background points</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>occ_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"occurrences_with_env.rds"</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>bg_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"background_with_env.rds"</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Load environmental stack for M</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>env_M <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"env_stack_M.tif"</span>))</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Candidate variables: %d"</span>, <span class="fu">ncol</span>(occ_env) <span class="sc">-</span> <span class="dv">2</span>)  <span class="co"># minus lon/lat</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(occ_env <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>decimalLongitude, <span class="sc">-</span>decimalLatitude))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Candidate variables: 21"
+ [1] "bio1"             "bio2"             "bio3"             "bio4"            
+ [5] "bio5"             "bio6"             "bio7"             "bio10"           
+ [9] "bio11"            "bio12"            "bio13"            "bio14"           
+[13] "bio15"            "bio16"            "bio17"            "aridity_idx"     
+[17] "annual_PET"       "continentality"   "climate_moisture" "PET_seasonality" 
+[21] "vpd_annual"      </code></pre>
+</div>
+</div>
+</section>
+<section id="pairwise-correlation-matrix" class="level2">
+<h2 class="anchored" data-anchor-id="pairwise-correlation-matrix">2. Pairwise correlation matrix</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract just environmental columns from occurrence data</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>env_cols <span class="ot">&lt;-</span> occ_env <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>decimalLongitude, <span class="sc">-</span>decimalLatitude) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Correlation matrix</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>cor_matrix <span class="ot">&lt;-</span> <span class="fu">cor</span>(env_cols, <span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot correlation matrix</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="fu">png</span>(<span class="fu">file.path</span>(figures_dir, <span class="st">"04_correlation_matrix.png"</span>), <span class="at">width =</span> <span class="dv">10</span>, <span class="at">height =</span> <span class="dv">10</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">units =</span> <span class="st">"in"</span>, <span class="at">res =</span> <span class="dv">300</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  cor_matrix,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"lower"</span>,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">number.cex =</span> <span class="fl">0.5</span>,</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">cl.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Pairwise Correlation — Candidate Environmental Variables"</span>,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">0</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  cor_matrix,</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"lower"</span>,</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">number.cex =</span> <span class="fl">0.5</span>,</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">cl.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Pairwise Correlation — Candidate Environmental Variables"</span>,</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">0</span>)</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04_variable_selection_files/figure-html/correlation-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>quartz_off_screen 
+                2 </code></pre>
+</div>
+</div>
+</section>
+<section id="identify-highly-correlated-pairs" class="level2">
+<h2 class="anchored" data-anchor-id="identify-highly-correlated-pairs">3. Identify highly correlated pairs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find pairs with |r| &gt; 0.7</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cor_threshold <span class="ot">&lt;-</span> <span class="fl">0.7</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>high_cor <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="fu">abs</span>(cor_matrix) <span class="sc">&gt;</span> cor_threshold <span class="sc">&amp;</span> <span class="fu">upper.tri</span>(cor_matrix), <span class="at">arr.ind =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(high_cor) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  high_cor_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">var1 =</span> <span class="fu">rownames</span>(cor_matrix)[high_cor[, <span class="dv">1</span>]],</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">var2 =</span> <span class="fu">colnames</span>(cor_matrix)[high_cor[, <span class="dv">2</span>]],</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">correlation =</span> cor_matrix[high_cor]</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(correlation)))</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Highly correlated pairs (|r| &gt; 0.7):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(high_cor_df, <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"No pairs with |r| &gt; 0.7</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Highly correlated pairs (|r| &gt; 0.7):
+# A tibble: 61 × 3
+   var1           var2             correlation
+   &lt;chr&gt;          &lt;chr&gt;                  &lt;dbl&gt;
+ 1 bio14          continentality         0.992
+ 2 bio3           bio16                  0.991
+ 3 bio1           bio3                   0.978
+ 4 bio2           bio15                  0.974
+ 5 bio2           vpd_annual             0.969
+ 6 bio17          continentality         0.966
+ 7 bio14          bio17                  0.965
+ 8 bio1           vpd_annual             0.961
+ 9 bio6           bio11                  0.959
+10 annual_PET     vpd_annual             0.958
+11 bio1           bio16                  0.955
+12 bio1           annual_PET             0.951
+13 bio14          bio16                 -0.943
+14 bio1           bio2                   0.941
+15 bio4           bio11                  0.940
+16 bio15          vpd_annual             0.939
+17 bio2           annual_PET             0.935
+18 bio15          annual_PET             0.929
+19 bio3           bio14                 -0.929
+20 bio16          continentality        -0.928
+21 bio4           bio6                   0.912
+22 bio16          bio17                 -0.910
+23 bio3           continentality        -0.909
+24 bio3           annual_PET             0.904
+25 bio3           vpd_annual             0.898
+26 bio6           bio7                  -0.891
+27 bio1           bio15                  0.881
+28 bio13          annual_PET             0.878
+29 bio3           bio13                  0.870
+30 bio3           bio17                 -0.866
+31 bio16          vpd_annual             0.857
+32 bio2           bio3                   0.853
+33 bio16          annual_PET             0.852
+34 bio13          bio14                 -0.847
+35 bio1           bio13                  0.834
+36 bio1           bio14                 -0.832
+37 bio13          bio16                  0.826
+38 bio13          continentality        -0.824
+39 bio7           bio11                 -0.816
+40 bio2           bio16                  0.813
+41 bio1           continentality        -0.807
+42 bio3           bio15                  0.780
+43 bio13          vpd_annual             0.774
+44 bio4           bio5                   0.772
+45 bio6           climate_moisture       0.769
+46 bio4           climate_moisture       0.766
+47 bio1           bio17                 -0.756
+48 bio11          climate_moisture       0.755
+49 bio7           climate_moisture      -0.754
+50 bio17          PET_seasonality        0.754
+51 bio4           bio7                  -0.752
+52 aridity_idx    climate_moisture      -0.747
+53 bio5           bio10                  0.733
+54 bio15          bio16                  0.725
+55 bio14          annual_PET            -0.724
+56 bio4           bio17                 -0.723
+57 bio11          bio17                 -0.721
+58 continentality PET_seasonality        0.708
+59 bio11          continentality        -0.706
+60 bio4           continentality        -0.704
+61 bio6           bio17                 -0.701</code></pre>
+</div>
+</div>
+</section>
+<section id="vif-based-variable-reduction" class="level2">
+<h2 class="anchored" data-anchor-id="vif-based-variable-reduction">4. VIF-based variable reduction</h2>
+<p>Use <code>usdm::vifstep()</code> to iteratively remove variables with VIF &gt; 10, but <strong>force retention of Bio1</strong> (annual mean temperature).</p>
+<p><strong>Important:</strong> After forcing Bio1, we must re-run VIF stepwise elimination on the combined set to remove any variables that became collinear <em>because</em> of Bio1’s inclusion. Simply adding Bio1 back without re-checking can leave residual VIF values far above the threshold (e.g., VIF &gt; 40).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># First, run VIF on all candidate variables</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>vif_all <span class="ot">&lt;-</span> <span class="fu">vif</span>(env_cols)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Initial VIF values:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(vif_all)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run vifstep to identify which variables to exclude (VIF threshold = 10)</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>vif_result <span class="ot">&lt;-</span> <span class="fu">vifstep</span>(env_cols, <span class="at">th =</span> <span class="dv">10</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">VIF stepwise reduction result:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(vif_result)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the retained variables from VIF</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>vif_retained <span class="ot">&lt;-</span> vif_result<span class="sc">@</span>results<span class="sc">$</span>Variables</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure Bio1 is retained (force inclusion)</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="st">"bio1"</span> <span class="sc">%in%</span> vif_retained) {</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Bio1 was removed by VIF — forcing retention (dominant predictor in literature)</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  vif_retained <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"bio1"</span>, vif_retained)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># CRITICAL: Re-run VIF stepwise on the set WITH Bio1 forced in</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># This removes variables that are collinear with Bio1</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Re-running VIF stepwise with Bio1 forced in...</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  recheck <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (recheck) {</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    current_vif <span class="ot">&lt;-</span> <span class="fu">vif</span>(env_cols[, vif_retained])</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Current VIF values:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(current_vif)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    max_vif_row <span class="ot">&lt;-</span> current_vif[<span class="fu">which.max</span>(current_vif<span class="sc">$</span>VIF), ]</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (max_vif_row<span class="sc">$</span>VIF <span class="sc">&gt;</span> <span class="dv">10</span> <span class="sc">&amp;&amp;</span> max_vif_row<span class="sc">$</span>Variables <span class="sc">!=</span> <span class="st">"bio1"</span>) {</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Removing %s (VIF = %.1f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>                  max_vif_row<span class="sc">$</span>Variables, max_vif_row<span class="sc">$</span>VIF))</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>      vif_retained <span class="ot">&lt;-</span> vif_retained[vif_retained <span class="sc">!=</span> max_vif_row<span class="sc">$</span>Variables]</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>      recheck <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Variables retained after VIF (with forced Bio1, all VIF re-checked):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(vif_retained)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Final VIF verification</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>final_vif_check <span class="ot">&lt;-</span> <span class="fu">vif</span>(env_cols[, vif_retained])</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Final VIF values:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(final_vif_check)</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Max VIF: %.1f (threshold: 10)</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">max</span>(final_vif_check<span class="sc">$</span>VIF)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Initial VIF values:
+          Variables          VIF
+1              bio1 2.652241e+03
+2              bio2 2.895003e+03
+3              bio3 8.173898e+03
+4              bio4 1.317499e+02
+5              bio5 1.674933e+01
+6              bio6 3.179420e+01
+7              bio7 2.326661e+01
+8             bio10 8.345236e+00
+9             bio11 5.093951e+01
+10            bio12 1.117269e+02
+11            bio13 2.040754e+02
+12            bio14 3.249002e+03
+13            bio15 6.303149e+12
+14            bio16 3.160421e+13
+15            bio17 1.752373e+13
+16      aridity_idx 7.806113e+00
+17       annual_PET 1.701021e+02
+18   continentality 1.278653e+02
+19 climate_moisture 5.192244e+01
+20  PET_seasonality 3.252654e+01
+21       vpd_annual 5.882392e+01
+
+VIF stepwise reduction result:
+14 variables from the 21 input variables have collinearity problem: 
+ 
+bio16 bio3 bio1 bio2 bio17 bio14 bio4 bio13 annual_PET vpd_annual bio6 climate_moisture bio11 continentality 
+
+After excluding the collinear variables, the linear correlation coefficients ranges between: 
+min correlation ( bio12 ~ bio10 ):  0.003815547 
+max correlation ( bio10 ~ bio5 ):  0.7325097 
+
+---------- VIFs of the remained variables -------- 
+        Variables      VIF
+1            bio5 3.987420
+2            bio7 1.722104
+3           bio10 3.248395
+4           bio12 1.972940
+5           bio15 1.919715
+6     aridity_idx 3.402587
+7 PET_seasonality 2.694512
+
+Bio1 was removed by VIF — forcing retention (dominant predictor in literature)
+Re-running VIF stepwise with Bio1 forced in...
+
+Current VIF values:
+        Variables       VIF
+1            bio1 47.250363
+2            bio5  4.074078
+3            bio7  2.763604
+4           bio10  3.563903
+5           bio12  2.038717
+6           bio15 40.582712
+7     aridity_idx  3.586702
+8 PET_seasonality  7.310856
+
+Variables retained after VIF (with forced Bio1, all VIF re-checked):
+[1] "bio1"            "bio5"            "bio7"            "bio10"          
+[5] "bio12"           "bio15"           "aridity_idx"     "PET_seasonality"
+
+Final VIF values:
+        Variables       VIF
+1            bio1 47.250363
+2            bio5  4.074078
+3            bio7  2.763604
+4           bio10  3.563903
+5           bio12  2.038717
+6           bio15 40.582712
+7     aridity_idx  3.586702
+8 PET_seasonality  7.310856
+
+Max VIF: 47.3 (threshold: 10)</code></pre>
+</div>
+</div>
+</section>
+<section id="preliminary-maxent-jackknife-variable-importance" class="level2">
+<h2 class="anchored" data-anchor-id="preliminary-maxent-jackknife-variable-importance">5. Preliminary MaxEnt — jackknife variable importance</h2>
+<p>Run a preliminary MaxEnt model with the VIF-retained variables to assess variable contribution and permutation importance.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare data for a quick MaxEnt run</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>occ_coords <span class="ot">&lt;-</span> occ_env <span class="sc">%&gt;%</span> <span class="fu">select</span>(decimalLongitude, decimalLatitude)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>bg_coords_df <span class="ot">&lt;-</span> bg_env <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="at">decimalLongitude =</span> lon, <span class="at">decimalLatitude =</span> lat)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset environmental stack to VIF-retained variables</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>env_M_subset <span class="ot">&lt;-</span> env_M[[vif_retained]]</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Run a single MaxEnt model (default settings) for jackknife</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Using ENMevaluate with a single model for variable importance</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>prelim_eval <span class="ot">&lt;-</span> <span class="fu">ENMevaluate</span>(</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">occs =</span> occ_coords,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">envs =</span> env_M_subset,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">bg =</span> bg_coords_df,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">algorithm =</span> <span class="st">"maxent.jar"</span>,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">partitions =</span> <span class="st">"none"</span>,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">tune.args =</span> <span class="fu">list</span>(<span class="at">fc =</span> <span class="st">"LQH"</span>, <span class="at">rm =</span> <span class="dv">2</span>),</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">doClamp =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">parallel =</span> <span class="cn">FALSE</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract variable importance</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>var_importance <span class="ot">&lt;-</span> prelim_eval<span class="sc">@</span>variable.importance[[<span class="dv">1</span>]]</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variable importance (preliminary MaxEnt):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(var_importance)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  |                                                                            
+  |                                                                      |   0%
+Variable importance (preliminary MaxEnt):
+         variable percent.contribution permutation.importance
+1 PET_seasonality               0.0000                 0.0000
+2     aridity_idx              40.1701                23.6521
+3            bio1              44.9490                32.7834
+4           bio10               0.0412                 0.4168
+5           bio12               2.1826                12.4846
+6           bio15               8.7633                23.8807
+7            bio5               0.0322                 1.5625
+8            bio7               3.8616                 5.2198</code></pre>
+</div>
+</div>
+</section>
+<section id="final-variable-selection" class="level2">
+<h2 class="anchored" data-anchor-id="final-variable-selection">6. Final variable selection</h2>
+<p>Remove variables with &lt; 2% permutation importance, unless they are Bio1 or have strong ecological justification.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter by permutation importance threshold</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>perm_threshold <span class="ot">&lt;-</span> <span class="fl">2.0</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>important_vars <span class="ot">&lt;-</span> var_importance <span class="sc">%&gt;%</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(percent.contribution <span class="sc">&gt;=</span> perm_threshold <span class="sc">|</span> permutation.importance <span class="sc">&gt;=</span> perm_threshold) <span class="sc">%&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(variable)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure Bio1 is always included</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="st">"bio1"</span> <span class="sc">%in%</span> important_vars) {</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  important_vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"bio1"</span>, important_vars)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables meeting importance threshold (&gt;= 2% contribution or permutation):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(important_vars)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Number of selected variables: %d"</span>, <span class="fu">length</span>(important_vars))</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Final check — if more than 8 variables, further reduce</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(important_vars) <span class="sc">&gt;</span> <span class="dv">8</span>) {</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">More than 8 variables selected — keeping top 8 by permutation importance</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  important_vars <span class="ot">&lt;-</span> var_importance <span class="sc">%&gt;%</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(variable <span class="sc">%in%</span> important_vars) <span class="sc">%&gt;%</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="fu">desc</span>(permutation.importance)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">head</span>(<span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(variable)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure Bio1 is still included</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="st">"bio1"</span> <span class="sc">%in%</span> important_vars) {</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    important_vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"bio1"</span>, important_vars[<span class="sc">-</span><span class="fu">length</span>(important_vars)])</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Final re-check VIF on selected variables — MUST all be &lt; 10</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>final_vif <span class="ot">&lt;-</span> <span class="fu">vif</span>(env_cols[, important_vars])</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Final VIF values for selected variables:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(final_vif)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">any</span>(final_vif<span class="sc">$</span>VIF <span class="sc">&gt;</span> <span class="dv">10</span>)) {</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">warning</span>(<span class="fu">sprintf</span>(<span class="st">"WARNING: %d variables still have VIF &gt; 10. Consider further reduction."</span>,</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">sum</span>(final_vif<span class="sc">$</span>VIF <span class="sc">&gt;</span> <span class="dv">10</span>)))</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Variables with VIF &gt; 10:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(final_vif[final_vif<span class="sc">$</span>VIF <span class="sc">&gt;</span> <span class="dv">10</span>, ])</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">All VIF values &lt; 10 (max: %.1f). Multicollinearity resolved.</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>              <span class="fu">max</span>(final_vif<span class="sc">$</span>VIF)))</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- FINAL SELECTED VARIABLES ---</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(important_vars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Variables meeting importance threshold (&gt;= 2% contribution or permutation):
+[1] "aridity_idx" "bio1"        "bio12"       "bio15"       "bio7"       
+[1] "Number of selected variables: 5"
+
+Final VIF values for selected variables:
+    Variables       VIF
+1 aridity_idx  1.405126
+2        bio1  8.855717
+3       bio12  1.779764
+4       bio15 10.479203
+5        bio7  1.805303
+
+Variables with VIF &gt; 10:
+  Variables     VIF
+4     bio15 10.4792
+
+--- FINAL SELECTED VARIABLES ---
+[1] "aridity_idx" "bio1"        "bio12"       "bio15"       "bio7"       </code></pre>
+</div>
+</div>
+</section>
+<section id="variable-descriptions-and-justification" class="level2">
+<h2 class="anchored" data-anchor-id="variable-descriptions-and-justification">7. Variable descriptions and justification</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>var_descriptions <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>variable, <span class="sc">~</span>description, <span class="sc">~</span>ecological_rationale,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio1"</span>,  <span class="st">"Annual Mean Temperature"</span>, <span class="st">"Primary thermal suitability; &gt;74% contribution in Alkishe et al. 2020"</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio2"</span>,  <span class="st">"Mean Diurnal Range"</span>, <span class="st">"Daily temperature fluctuation; affects off-host desiccation"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio3"</span>,  <span class="st">"Isothermality"</span>, <span class="st">"Temperature stability; important for ectotherm activity"</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio4"</span>,  <span class="st">"Temperature Seasonality"</span>, <span class="st">"Seasonal temperature variation; affects life cycle timing"</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio5"</span>,  <span class="st">"Max Temp of Warmest Month"</span>, <span class="st">"Upper thermal limit for survival"</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio6"</span>,  <span class="st">"Min Temp of Coldest Month"</span>, <span class="st">"Winter survival threshold; critical for establishment"</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio7"</span>,  <span class="st">"Temperature Annual Range"</span>, <span class="st">"Range of temperature extremes"</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio10"</span>, <span class="st">"Mean Temp of Warmest Quarter"</span>, <span class="st">"Warm-season activity conditions"</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio11"</span>, <span class="st">"Mean Temp of Coldest Quarter"</span>, <span class="st">"Cold-season survival conditions"</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio12"</span>, <span class="st">"Annual Precipitation"</span>, <span class="st">"Overall moisture availability; 16.3% in Alkishe et al."</span>,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio13"</span>, <span class="st">"Precipitation of Wettest Month"</span>, <span class="st">"Peak moisture period"</span>,</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio14"</span>, <span class="st">"Precipitation of Driest Month"</span>, <span class="st">"Minimum moisture availability"</span>,</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio15"</span>, <span class="st">"Precipitation Seasonality"</span>, <span class="st">"Seasonal moisture patterns"</span>,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio16"</span>, <span class="st">"Precipitation of Wettest Quarter"</span>, <span class="st">"Sustained moisture during active season"</span>,</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bio17"</span>, <span class="st">"Precipitation of Driest Quarter"</span>, <span class="st">"Drought stress period"</span>,</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"aridity_idx"</span>, <span class="st">"Thornthwaite Aridity Index"</span>, <span class="st">"Off-host desiccation risk"</span>,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"annual_PET"</span>, <span class="st">"Annual Potential Evapotranspiration"</span>, <span class="st">"Evaporative demand; moisture balance"</span>,</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"continentality"</span>, <span class="st">"Continentality Index"</span>, <span class="st">"Temperature range due to continental position"</span>,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"climate_moisture"</span>, <span class="st">"Climatic Moisture Index"</span>, <span class="st">"Water balance (precipitation - PET)"</span>,</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"PET_seasonality"</span>, <span class="st">"PET Seasonality"</span>, <span class="st">"Seasonal evaporative demand variation"</span>,</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"vpd_annual"</span>, <span class="st">"Annual Mean Vapor Pressure Deficit"</span>, <span class="st">"Direct atmospheric desiccation measure"</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Show descriptions for selected variables</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Selected variable descriptions:</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>var_descriptions <span class="sc">%&gt;%</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(variable <span class="sc">%in%</span> important_vars) <span class="sc">%&gt;%</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>, <span class="at">width =</span> <span class="dv">120</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Selected variable descriptions:
+
+# A tibble: 5 × 3
+  variable    description               
+  &lt;chr&gt;       &lt;chr&gt;                     
+1 bio1        Annual Mean Temperature   
+2 bio7        Temperature Annual Range  
+3 bio12       Annual Precipitation      
+4 bio15       Precipitation Seasonality 
+5 aridity_idx Thornthwaite Aridity Index
+  ecological_rationale                                                 
+  &lt;chr&gt;                                                                
+1 Primary thermal suitability; &gt;74% contribution in Alkishe et al. 2020
+2 Range of temperature extremes                                        
+3 Overall moisture availability; 16.3% in Alkishe et al.               
+4 Seasonal moisture patterns                                           
+5 Off-host desiccation risk                                            </code></pre>
+</div>
+</div>
+</section>
+<section id="prepare-final-environmental-stacks" class="level2">
+<h2 class="anchored" data-anchor-id="prepare-final-environmental-stacks">8. Prepare final environmental stacks</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset both environmental stacks to final variables</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>env_M_final <span class="ot">&lt;-</span> env_M[[important_vars]]</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>env_aus <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"env_stack_aus.tif"</span>))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>env_aus_final <span class="ot">&lt;-</span> env_aus[[important_vars]]</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Final training stack: %d variables, %d x %d cells"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">nlyr</span>(env_M_final), <span class="fu">nrow</span>(env_M_final), <span class="fu">ncol</span>(env_M_final))</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Final projection stack: %d variables, %d x %d cells"</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">nlyr</span>(env_aus_final), <span class="fu">nrow</span>(env_aus_final), <span class="fu">ncol</span>(env_aus_final))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Final training stack: 5 variables, 935 x 1385 cells"
+[1] "Final projection stack: 5 variables, 1073 x 1105 cells"</code></pre>
+</div>
+</div>
+</section>
+<section id="save-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="save-outputs">9. Save outputs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Selected variable names</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(important_vars, <span class="fu">file.path</span>(processed_dir, <span class="st">"selected_variables.txt"</span>))</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Final environmental stacks</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(env_M_final, <span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_M.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(env_aus_final, <span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(<span class="fu">wrap</span>(env_M_final), <span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_M.rds"</span>))</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(<span class="fu">wrap</span>(env_aus_final), <span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_aus.rds"</span>))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable importance table</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(var_importance, <span class="fu">file.path</span>(processed_dir, <span class="st">"variable_importance_preliminary.csv"</span>))</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable selection log</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>selection_log <span class="ot">&lt;-</span> var_importance <span class="sc">%&gt;%</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">selected =</span> variable <span class="sc">%in%</span> important_vars)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(selection_log, <span class="fu">file.path</span>(processed_dir, <span class="st">"variable_selection_log.csv"</span>))</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Saved %d selected variables and final environmental stacks"</span>, <span class="fu">length</span>(important_vars))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Saved 5 selected variables and final environmental stacks"</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Alexander W. Gofton">
+<meta name="dcterms.date" content="2026-04-07">
+
+<title>Step 05e: CLIMEX Re-implementation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="05e_climex_reimplementation_files/libs/clipboard/clipboard.min.js"></script>
+<script src="05e_climex_reimplementation_files/libs/quarto-html/quarto.js"></script>
+<script src="05e_climex_reimplementation_files/libs/quarto-html/popper.min.js"></script>
+<script src="05e_climex_reimplementation_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="05e_climex_reimplementation_files/libs/quarto-html/anchor.min.js"></script>
+<link href="05e_climex_reimplementation_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="05e_climex_reimplementation_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="05e_climex_reimplementation_files/libs/quarto-html/quarto-syntax-highlighting-dark-8ea72dc5fed832574809a9c94082fbbb.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="05e_climex_reimplementation_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="05e_climex_reimplementation_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="05e_climex_reimplementation_files/libs/bootstrap/bootstrap-0e8d46d49afdcf27eef7cf8bb79e73b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="05e_climex_reimplementation_files/libs/bootstrap/bootstrap-dark-1666a84f562704a6c566dacccee1c77b.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#load-monthly-climate-data-and-define-parameters" id="toc-load-monthly-climate-data-and-define-parameters" class="nav-link" data-scroll-target="#load-monthly-climate-data-and-define-parameters">1. Load monthly climate data and define parameters</a></li>
+  <li><a href="#define-climex-parameters" id="toc-define-climex-parameters" class="nav-link" data-scroll-target="#define-climex-parameters">2. Define CLIMEX parameters</a></li>
+  <li><a href="#compute-monthly-mean-temperature-and-pet" id="toc-compute-monthly-mean-temperature-and-pet" class="nav-link" data-scroll-target="#compute-monthly-mean-temperature-and-pet">3. Compute monthly mean temperature and PET</a></li>
+  <li><a href="#compute-monthly-soil-moisture-balance" id="toc-compute-monthly-soil-moisture-balance" class="nav-link" data-scroll-target="#compute-monthly-soil-moisture-balance">4. Compute monthly soil moisture balance</a></li>
+  <li><a href="#compute-temperature-growth-index-gi_t" id="toc-compute-temperature-growth-index-gi_t" class="nav-link" data-scroll-target="#compute-temperature-growth-index-gi_t">5. Compute Temperature Growth Index (GI_T)</a></li>
+  <li><a href="#compute-moisture-growth-index-gi_m" id="toc-compute-moisture-growth-index-gi_m" class="nav-link" data-scroll-target="#compute-moisture-growth-index-gi_m">6. Compute Moisture Growth Index (GI_M)</a></li>
+  <li><a href="#compute-stress-indices" id="toc-compute-stress-indices" class="nav-link" data-scroll-target="#compute-stress-indices">7. Compute stress indices</a></li>
+  <li><a href="#compute-ecoclimatic-index-ei" id="toc-compute-ecoclimatic-index-ei" class="nav-link" data-scroll-target="#compute-ecoclimatic-index-ei">8. Compute Ecoclimatic Index (EI)</a></li>
+  <li><a href="#validation-at-climex-reference-locations" id="toc-validation-at-climex-reference-locations" class="nav-link" data-scroll-target="#validation-at-climex-reference-locations">9. Validation at CLIMEX reference locations</a></li>
+  <li><a href="#maps" id="toc-maps" class="nav-link" data-scroll-target="#maps">10. Maps</a></li>
+  <li><a href="#area-estimates-and-comparison-with-sdms" id="toc-area-estimates-and-comparison-with-sdms" class="nav-link" data-scroll-target="#area-estimates-and-comparison-with-sdms">11. Area estimates and comparison with SDMs</a></li>
+  <li><a href="#save-outputs" id="toc-save-outputs" class="nav-link" data-scroll-target="#save-outputs">12. Save outputs</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="05e_climex_reimplementation.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Step 05e: CLIMEX Re-implementation</h1>
+<p class="subtitle lead"><em>Dermacentor variabilis</em> Species Distribution Model</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alexander W. Gofton </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 7, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>This script re-implements the CLIMEX Ecoclimatic Index (EI) for <em>D. variabilis</em> using the parameters published in Halliday &amp; Sutherst (1990) and WorldClim 2.1 monthly climate data (Tmin, Tmax, precipitation at 2.5 arcmin). This produces an updated EI map with 35 years of improved climate data at higher spatial resolution.</p>
+<p><strong>Why this is necessary:</strong> Correlative SDMs (MaxEnt, BRT) cannot predict tropical Australian suitability because the training data is temperate (eastern N. America). CLIMEX is process-based — it models where the species <em>can</em> survive physiologically, not where it <em>has</em> been found. This avoids the realized-vs-fundamental niche problem.</p>
+<p><strong>CLIMEX formula:</strong></p>
+<pre><code>EI = GI_T × GI_M × (1 − CS) × (1 − HS) × (1 − DS) × (1 − WS) × 100</code></pre>
+<p>where GI_T = temperature growth index, GI_M = moisture growth index, CS = cold stress, HS = heat stress, DS = dry stress, WS = wet stress.</p>
+<p><strong>Parameters from Halliday &amp; Sutherst (1990):</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Description</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DV0</td>
+<td>Lower developmental threshold</td>
+<td>10.0 °C</td>
+</tr>
+<tr class="even">
+<td>DV1</td>
+<td>Lower optimal temperature</td>
+<td>28.0 °C</td>
+</tr>
+<tr class="odd">
+<td>DV2</td>
+<td>Upper optimal temperature</td>
+<td>35.0 °C</td>
+</tr>
+<tr class="even">
+<td>DV3</td>
+<td>Upper lethal temperature</td>
+<td>40.0 °C</td>
+</tr>
+<tr class="odd">
+<td>STRMAX</td>
+<td>Soil moisture storage capacity</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td>PETCF</td>
+<td>PET coefficient</td>
+<td>0.80</td>
+</tr>
+<tr class="odd">
+<td>SM0</td>
+<td>Dry stress threshold (soil moisture)</td>
+<td>0.25</td>
+</tr>
+<tr class="even">
+<td>SM1</td>
+<td>Lower optimal soil moisture</td>
+<td>0.70</td>
+</tr>
+<tr class="odd">
+<td>SM2</td>
+<td>Upper optimal soil moisture</td>
+<td>2.00</td>
+</tr>
+<tr class="even">
+<td>SM3</td>
+<td>Wet stress threshold</td>
+<td>4.00</td>
+</tr>
+<tr class="odd">
+<td>TCS</td>
+<td>Cold stress temperature threshold</td>
+<td>0.0 °C</td>
+</tr>
+<tr class="even">
+<td>HCS</td>
+<td>Cold stress accumulation rate</td>
+<td>0.0001</td>
+</tr>
+<tr class="odd">
+<td>THS</td>
+<td>Heat stress temperature threshold</td>
+<td>35.0 °C</td>
+</tr>
+<tr class="even">
+<td>HHS</td>
+<td>Heat stress accumulation rate</td>
+<td>0.002</td>
+</tr>
+<tr class="odd">
+<td>SMDS</td>
+<td>Dry stress threshold (for stress accumulation)</td>
+<td>0.30</td>
+</tr>
+<tr class="even">
+<td>HDS</td>
+<td>Dry stress accumulation rate</td>
+<td>0.010</td>
+</tr>
+<tr class="odd">
+<td>SMWS</td>
+<td>Wet stress threshold</td>
+<td>2.00</td>
+</tr>
+<tr class="even">
+<td>HWS</td>
+<td>Wet stress accumulation rate</td>
+<td>0.002</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rnaturalearth)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rnaturalearthdata)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="load-monthly-climate-data-and-define-parameters" class="level2">
+<h2 class="anchored" data-anchor-id="load-monthly-climate-data-and-define-parameters">1. Load monthly climate data and define parameters</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>base_dir    <span class="ot">&lt;-</span> <span class="st">"~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>wc_dir      <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"climatic_data"</span>, <span class="st">"wc2.1_2.5m"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>processed_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"processed_data"</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>figures_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"figures"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Load 12 months of Tmax, Tmin, Precipitation</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>tmax_files <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">list.files</span>(wc_dir, <span class="at">pattern =</span> <span class="st">"wc2.1_2.5m_tmax_</span><span class="sc">\\</span><span class="st">d{2}</span><span class="sc">\\</span><span class="st">.tif$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>tmin_files <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">list.files</span>(wc_dir, <span class="at">pattern =</span> <span class="st">"wc2.1_2.5m_tmin_</span><span class="sc">\\</span><span class="st">d{2}</span><span class="sc">\\</span><span class="st">.tif$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>prec_files <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">list.files</span>(wc_dir, <span class="at">pattern =</span> <span class="st">"wc2.1_2.5m_prec_</span><span class="sc">\\</span><span class="st">d{2}</span><span class="sc">\\</span><span class="st">.tif$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Monthly Tmax files:"</span>, <span class="fu">length</span>(tmax_files), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Monthly Tmin files:"</span>, <span class="fu">length</span>(tmin_files), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Monthly Prec files:"</span>, <span class="fu">length</span>(prec_files), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>tmax_stack <span class="ot">&lt;-</span> <span class="fu">rast</span>(tmax_files)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>tmin_stack <span class="ot">&lt;-</span> <span class="fu">rast</span>(tmin_files)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>prec_stack <span class="ot">&lt;-</span> <span class="fu">rast</span>(prec_files)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(tmax_stack) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"tmax_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(tmin_stack) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"tmin_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(prec_stack) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"prec_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Crop to Australia</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>aus <span class="ot">&lt;-</span> <span class="fu">ne_countries</span>(<span class="at">country =</span> <span class="st">"Australia"</span>, <span class="at">scale =</span> <span class="st">"medium"</span>, <span class="at">returnclass =</span> <span class="st">"sf"</span>)</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>aus_vect <span class="ot">&lt;-</span> <span class="fu">vect</span>(aus)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>tmax_aus <span class="ot">&lt;-</span> <span class="fu">crop</span>(tmax_stack, aus_vect) <span class="sc">|&gt;</span> <span class="fu">mask</span>(aus_vect)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>tmin_aus <span class="ot">&lt;-</span> <span class="fu">crop</span>(tmin_stack, aus_vect) <span class="sc">|&gt;</span> <span class="fu">mask</span>(aus_vect)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>prec_aus <span class="ot">&lt;-</span> <span class="fu">crop</span>(prec_stack, aus_vect) <span class="sc">|&gt;</span> <span class="fu">mask</span>(aus_vect)</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Australian grid dimensions:"</span>, <span class="fu">dim</span>(tmax_aus), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Monthly Tmax files: 12 
+Monthly Tmin files: 12 
+Monthly Prec files: 12 
+Australian grid dimensions: 1073 1105 12 </code></pre>
+</div>
+</div>
+</section>
+<section id="define-climex-parameters" class="level2">
+<h2 class="anchored" data-anchor-id="define-climex-parameters">2. Define CLIMEX parameters</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Temperature Growth Index parameters ----</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>DV0 <span class="ot">&lt;-</span> <span class="fl">10.0</span>   <span class="co"># Lower developmental threshold (°C)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>DV1 <span class="ot">&lt;-</span> <span class="fl">28.0</span>   <span class="co"># Lower optimal temperature (°C)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>DV2 <span class="ot">&lt;-</span> <span class="fl">35.0</span>   <span class="co"># Upper optimal temperature (°C)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>DV3 <span class="ot">&lt;-</span> <span class="fl">40.0</span>   <span class="co"># Upper lethal limit (°C)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Cold and Heat Stress ----</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>TCS <span class="ot">&lt;-</span> <span class="fl">0.0</span>    <span class="co"># Cold stress threshold (°C)</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>HCS <span class="ot">&lt;-</span> <span class="fl">0.0001</span> <span class="co"># Cold stress accumulation rate (per degree-week below TCS)</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>THS <span class="ot">&lt;-</span> <span class="fl">35.0</span>   <span class="co"># Heat stress threshold (°C)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>HHS <span class="ot">&lt;-</span> <span class="fl">0.002</span>  <span class="co"># Heat stress accumulation rate (per degree-week above THS)</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Moisture parameters ----</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>STRMAX <span class="ot">&lt;-</span> <span class="dv">100</span>  <span class="co"># Soil moisture storage capacity (mm)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>PETCF  <span class="ot">&lt;-</span> <span class="fl">0.80</span> <span class="co"># PET correction factor (fraction of estimated PET)</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>SM0 <span class="ot">&lt;-</span> <span class="fl">0.25</span>    <span class="co"># Dry stress onset (fraction of STRMAX)</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>SM1 <span class="ot">&lt;-</span> <span class="fl">0.70</span>    <span class="co"># Lower optimal soil moisture (fraction of STRMAX)</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>SM2 <span class="ot">&lt;-</span> <span class="fl">2.00</span>    <span class="co"># Upper optimal soil moisture (fraction of STRMAX)</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>SM3 <span class="ot">&lt;-</span> <span class="fl">4.00</span>    <span class="co"># Wet stress onset (fraction of STRMAX)</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>SMDS <span class="ot">&lt;-</span> <span class="fl">0.30</span>   <span class="co"># Dry stress threshold for accumulation</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>HDS  <span class="ot">&lt;-</span> <span class="fl">0.010</span>  <span class="co"># Dry stress accumulation rate</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>SMWS <span class="ot">&lt;-</span> <span class="fl">2.00</span>   <span class="co"># Wet stress threshold for accumulation</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>HWS  <span class="ot">&lt;-</span> <span class="fl">0.002</span>  <span class="co"># Wet stress accumulation rate</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Approximate days per month for weekly conversion</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>days_per_month <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">31</span>, <span class="dv">28</span>, <span class="dv">31</span>, <span class="dv">30</span>, <span class="dv">31</span>, <span class="dv">30</span>, <span class="dv">31</span>, <span class="dv">31</span>, <span class="dv">30</span>, <span class="dv">31</span>, <span class="dv">30</span>, <span class="dv">31</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>weeks_per_month <span class="ot">&lt;-</span> days_per_month <span class="sc">/</span> <span class="dv">7</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"CLIMEX parameters loaded.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Temperature growth range: %.0f - %.0f°C (optimal: %.0f - %.0f°C)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>            DV0, DV3, DV1, DV2))</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Cold stress below %.0f°C (rate %.4f), Heat stress above %.0f°C (rate %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>            TCS, HCS, THS, HHS))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CLIMEX parameters loaded.
+Temperature growth range: 10 - 40°C (optimal: 28 - 35°C)
+Cold stress below 0°C (rate 0.0001), Heat stress above 35°C (rate 0.002)</code></pre>
+</div>
+</div>
+</section>
+<section id="compute-monthly-mean-temperature-and-pet" class="level2">
+<h2 class="anchored" data-anchor-id="compute-monthly-mean-temperature-and-pet">3. Compute monthly mean temperature and PET</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Monthly mean temperature (average of Tmax and Tmin)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>tavg_aus <span class="ot">&lt;-</span> (tmax_aus <span class="sc">+</span> tmin_aus) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(tavg_aus) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"tavg_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- PET estimation using Hargreaves (1985) method ----</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># PET (mm/day) = 0.0023 * Ra * (Tmean + 17.8) * sqrt(Tmax - Tmin)</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># where Ra = extraterrestrial radiation (mm/day equivalent)</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Ra approximated from latitude using simplified formula</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># For simplicity we use Thornthwaite method which only requires Tmean and latitude,</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co"># appropriate given we are computing relative moisture indices, not absolute values.</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Thornthwaite monthly PET (mm):</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   PET_m = 16 * (10 * T / I)^a * adjustment_factor</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co"># where I = annual heat index = sum(max(T/5, 0)^1.514 over 12 months)</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co"># a = 6.75e-7 * I^3 - 7.71e-5 * I^2 + 1.792e-2 * I + 0.49239</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute annual heat index I raster</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>I_rast <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">app</span>(tavg_aus[[m]], <span class="cf">function</span>(t) <span class="fu">pmax</span>(<span class="dv">0</span>, t <span class="sc">/</span> <span class="dv">5</span>)<span class="sc">^</span><span class="fl">1.514</span>)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>I_annual <span class="ot">&lt;-</span> <span class="fu">sum</span>(I_rast)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute Thornthwaite PET for each month</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>pet_aus <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  T_m <span class="ot">&lt;-</span> tavg_aus[[m]]</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Thornthwaite exponent</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  a_rast <span class="ot">&lt;-</span> <span class="fl">6.75e-7</span> <span class="sc">*</span> I_annual<span class="sc">^</span><span class="dv">3</span> <span class="sc">-</span> <span class="fl">7.71e-5</span> <span class="sc">*</span> I_annual<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fl">1.792e-2</span> <span class="sc">*</span> I_annual <span class="sc">+</span> <span class="fl">0.49239</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Monthly unadjusted PET (mm)</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Formula: 16 * (10 * T / I)^a for T &gt; 0, else 0</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Note: this gives PET for a standard 30-day/12-hour month; adjustment for actual</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># month length and daylight hours is applied below</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>  pet_raw <span class="ot">&lt;-</span> <span class="fu">app</span>(<span class="fu">c</span>(T_m, I_annual, a_rast), <span class="cf">function</span>(x) {</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    t  <span class="ot">&lt;-</span> x[<span class="dv">1</span>]; I <span class="ot">&lt;-</span> x[<span class="dv">2</span>]; a <span class="ot">&lt;-</span> x[<span class="dv">3</span>]</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(t) <span class="sc">||</span> <span class="fu">is.na</span>(I) <span class="sc">||</span> I <span class="sc">&lt;=</span> <span class="dv">0</span> <span class="sc">||</span> t <span class="sc">&lt;=</span> <span class="dv">0</span>) <span class="fu">return</span>(<span class="dv">0</span>)</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>    <span class="dv">16</span> <span class="sc">*</span> (<span class="dv">10</span> <span class="sc">*</span> t <span class="sc">/</span> I)<span class="sc">^</span>a</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Apply PETCF correction (CLIMEX parameter)</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>  pet_corrected <span class="ot">&lt;-</span> pet_raw <span class="sc">*</span> PETCF <span class="sc">*</span> (days_per_month[m] <span class="sc">/</span> <span class="dv">30</span>)</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(pet_corrected) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"pet_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, m))</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>  pet_corrected</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Monthly mean temperature and PET computed.</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Monthly mean temperature and PET computed.</code></pre>
+</div>
+</div>
+</section>
+<section id="compute-monthly-soil-moisture-balance" class="level2">
+<h2 class="anchored" data-anchor-id="compute-monthly-soil-moisture-balance">4. Compute monthly soil moisture balance</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple monthly bucket model</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Soil moisture SM (mm): bounded 0 to STRMAX</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># dSM/dt = Precip - PET</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># SM as fraction of STRMAX for comparison with CLIMEX SM thresholds</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># SM indices (fraction of STRMAX):</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 0 = completely dry, 1 = field capacity, 2+ = waterlogged</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialise from January with half-full soil</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>sm_fraction <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co"># First compute SM in absolute mm, then convert to fraction</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>sm_mm <span class="ot">&lt;-</span> <span class="fu">rep</span>(STRMAX <span class="sc">*</span> <span class="fl">0.5</span>, <span class="fu">ncell</span>(prec_aus[[<span class="dv">1</span>]]))  <span class="co"># initial soil moisture (mm)</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Need cell-level computation — use terra app on a combined stack</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Pack all months of prec and pet into one stack</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>climate_stack <span class="ot">&lt;-</span> <span class="fu">c</span>(prec_aus, pet_aus)  <span class="co"># months 1-12 prec, 13-24 pet</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute soil moisture month by month (sequential, must loop)</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co"># To avoid very slow cell-by-cell operations, use terra lapp/app with packed layers</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialise as raster (half full soil)</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>sm_init <span class="ot">&lt;-</span> tmax_aus[[<span class="dv">1</span>]]  <span class="co"># use as template</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="fu">values</span>(sm_init) <span class="ot">&lt;-</span> STRMAX <span class="sc">*</span> <span class="fl">0.5</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(sm_init) <span class="ot">&lt;-</span> <span class="st">"sm_init"</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>sm_current <span class="ot">&lt;-</span> sm_init</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (m <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>) {</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  p   <span class="ot">&lt;-</span> prec_aus[[m]]</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  pet <span class="ot">&lt;-</span> pet_aus[[m]]</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># New SM = SM + P - PET, constrained to [0, STRMAX]</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>  sm_new <span class="ot">&lt;-</span> <span class="fu">app</span>(<span class="fu">c</span>(sm_current, p, pet), <span class="cf">function</span>(x) {</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    sm <span class="ot">&lt;-</span> x[<span class="dv">1</span>]; pr <span class="ot">&lt;-</span> x[<span class="dv">2</span>]; et <span class="ot">&lt;-</span> x[<span class="dv">3</span>]</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(sm)) <span class="fu">return</span>(<span class="cn">NA_real_</span>)</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pmax</span>(<span class="dv">0</span>, <span class="fu">pmin</span>(STRMAX, sm <span class="sc">+</span> pr <span class="sc">-</span> et))</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(sm_new) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"sm_mm_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, m))</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Convert to fraction of STRMAX</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  sm_frac <span class="ot">&lt;-</span> sm_new <span class="sc">/</span> STRMAX</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(sm_frac) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"sm_frac_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, m))</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>  sm_fraction[[m]] <span class="ot">&lt;-</span> sm_frac</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>  sm_current <span class="ot">&lt;-</span> sm_new</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>sm_frac_stack <span class="ot">&lt;-</span> <span class="fu">rast</span>(sm_fraction)</span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Monthly soil moisture balance computed.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"SM fraction range (Jan):"</span>, <span class="fu">range</span>(<span class="fu">values</span>(sm_fraction[[<span class="dv">1</span>]]), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Monthly soil moisture balance computed.
+SM fraction range (Jan): 0 1 </code></pre>
+</div>
+</div>
+</section>
+<section id="compute-temperature-growth-index-gi_t" class="level2">
+<h2 class="anchored" data-anchor-id="compute-temperature-growth-index-gi_t">5. Compute Temperature Growth Index (GI_T)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weekly growth rate function g(T):</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   T &lt; DV0          : g = 0</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   DV0 &lt;= T &lt; DV1   : g = (T - DV0) / (DV1 - DV0)    [linear ramp up]</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   DV1 &lt;= T &lt;= DV2  : g = 1.0                          [optimal]</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   DV2 &lt; T &lt;= DV3   : g = (DV3 - T) / (DV3 - DV2)    [linear ramp down]</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   T &gt; DV3          : g = 0                            [lethal]</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>gi_t_func <span class="ot">&lt;-</span> <span class="cf">function</span>(T) {</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(<span class="fu">is.na</span>(T), <span class="cn">NA_real_</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(T <span class="sc">&lt;</span> DV0,  <span class="dv">0</span>,</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(T <span class="sc">&lt;</span> DV1,  (T <span class="sc">-</span> DV0) <span class="sc">/</span> (DV1 <span class="sc">-</span> DV0),</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(T <span class="sc">&lt;=</span> DV2, <span class="fl">1.0</span>,</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(T <span class="sc">&lt;=</span> DV3, (DV3 <span class="sc">-</span> T) <span class="sc">/</span> (DV3 <span class="sc">-</span> DV2),</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">0</span>)))))</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute monthly GI_T (weighted by weeks per month)</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>gi_t_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  gi <span class="ot">&lt;-</span> <span class="fu">app</span>(tavg_aus[[m]], gi_t_func)</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Weight by weeks in month (proportional contribution to annual GI_T)</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(gi) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"gi_t_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, m))</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  gi</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Annual GI_T = weighted mean across months</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Use weeks per month as weights for annual mean</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>gi_t_weighted <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) gi_t_monthly[[m]] <span class="sc">*</span> weeks_per_month[m]))</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>gi_t_annual <span class="ot">&lt;-</span> <span class="fu">sum</span>(gi_t_weighted) <span class="sc">/</span> <span class="fu">sum</span>(weeks_per_month)</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalise to [0, 1]</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="co"># GI_T represents the fraction of the year in which growth is occurring</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>gi_T <span class="ot">&lt;-</span> <span class="fu">clamp</span>(gi_t_annual, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(gi_T) <span class="ot">&lt;-</span> <span class="st">"gi_T"</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Temperature Growth Index (GI_T) computed.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"GI_T range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(gi_T), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Temperature Growth Index (GI_T) computed.
+GI_T range: 0 0.967 </code></pre>
+</div>
+</div>
+</section>
+<section id="compute-moisture-growth-index-gi_m" class="level2">
+<h2 class="anchored" data-anchor-id="compute-moisture-growth-index-gi_m">6. Compute Moisture Growth Index (GI_M)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Monthly moisture growth rate f(SM):</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   SM &lt; SM0         : f = 0</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   SM0 &lt;= SM &lt; SM1  : f = (SM - SM0) / (SM1 - SM0)   [linear ramp up]</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   SM1 &lt;= SM &lt;= SM2 : f = 1.0                          [optimal]</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   SM2 &lt; SM &lt;= SM3  : f = (SM3 - SM) / (SM3 - SM2)   [linear ramp down]</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   SM &gt; SM3         : f = 0                            [waterlogged]</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>gi_m_func <span class="ot">&lt;-</span> <span class="cf">function</span>(sm) {</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sm), <span class="cn">NA_real_</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(sm <span class="sc">&lt;</span> SM0,  <span class="dv">0</span>,</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(sm <span class="sc">&lt;</span> SM1,  (sm <span class="sc">-</span> SM0) <span class="sc">/</span> (SM1 <span class="sc">-</span> SM0),</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(sm <span class="sc">&lt;=</span> SM2, <span class="fl">1.0</span>,</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(sm <span class="sc">&lt;=</span> SM3, (SM3 <span class="sc">-</span> sm) <span class="sc">/</span> (SM3 <span class="sc">-</span> SM2),</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>                    <span class="dv">0</span>)))))</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>gi_m_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>  gi <span class="ot">&lt;-</span> <span class="fu">app</span>(sm_frac_stack[[m]], gi_m_func)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(gi) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"gi_m_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, m))</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  gi</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Annual GI_M = mean across months</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>gi_M <span class="ot">&lt;-</span> <span class="fu">app</span>(gi_m_monthly, mean)</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>gi_M <span class="ot">&lt;-</span> <span class="fu">clamp</span>(gi_M, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(gi_M) <span class="ot">&lt;-</span> <span class="st">"gi_M"</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Moisture Growth Index (GI_M) computed.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"GI_M range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(gi_M), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Moisture Growth Index (GI_M) computed.
+GI_M range: 0 1 </code></pre>
+</div>
+</div>
+</section>
+<section id="compute-stress-indices" class="level2">
+<h2 class="anchored" data-anchor-id="compute-stress-indices">7. Compute stress indices</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Cold Stress (CS) ----</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Degree-weeks below TCS (0°C), accumulated over the year</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cs_accum = sum over months of: max(0, TCS - Tavg) * HCS * weeks_per_month</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>cs_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">app</span>(tavg_aus[[m]], <span class="cf">function</span>(t) <span class="fu">pmax</span>(<span class="dv">0</span>, TCS <span class="sc">-</span> t) <span class="sc">*</span> HCS <span class="sc">*</span> weeks_per_month[m])</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>cs_accum <span class="ot">&lt;-</span> <span class="fu">sum</span>(cs_monthly)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># CS index: if accumulated stress &gt;= 1, location is uninhabitable (CS = 1)</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>cold_stress <span class="ot">&lt;-</span> <span class="fu">clamp</span>(cs_accum, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(cold_stress) <span class="ot">&lt;-</span> <span class="st">"cold_stress"</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Heat Stress (HS) ----</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Degree-weeks above THS, accumulated over the year</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>hs_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">app</span>(tavg_aus[[m]], <span class="cf">function</span>(t) <span class="fu">pmax</span>(<span class="dv">0</span>, t <span class="sc">-</span> THS) <span class="sc">*</span> HHS <span class="sc">*</span> weeks_per_month[m])</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>hs_accum <span class="ot">&lt;-</span> <span class="fu">sum</span>(hs_monthly)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>heat_stress <span class="ot">&lt;-</span> <span class="fu">clamp</span>(hs_accum, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(heat_stress) <span class="ot">&lt;-</span> <span class="st">"heat_stress"</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Dry Stress (DS) ----</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Weeks per month with SM fraction below SMDS, accumulated annually</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>ds_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># If monthly mean SM fraction &lt; SMDS, accumulate stress</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">app</span>(sm_frac_stack[[m]], <span class="cf">function</span>(sm) {</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sm), <span class="cn">NA_real_</span>,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(sm <span class="sc">&lt;</span> SMDS, (SMDS <span class="sc">-</span> sm) <span class="sc">*</span> HDS <span class="sc">*</span> weeks_per_month[m], <span class="dv">0</span>))</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>ds_accum <span class="ot">&lt;-</span> <span class="fu">sum</span>(ds_monthly)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>dry_stress <span class="ot">&lt;-</span> <span class="fu">clamp</span>(ds_accum, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(dry_stress) <span class="ot">&lt;-</span> <span class="st">"dry_stress"</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a><span class="co"># ---- Wet Stress (WS) ----</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Weeks per month with SM fraction above SMWS, accumulated annually</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>ws_monthly <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="cf">function</span>(m) {</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">app</span>(sm_frac_stack[[m]], <span class="cf">function</span>(sm) {</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sm), <span class="cn">NA_real_</span>,</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(sm <span class="sc">&gt;</span> SMWS, (sm <span class="sc">-</span> SMWS) <span class="sc">*</span> HWS <span class="sc">*</span> weeks_per_month[m], <span class="dv">0</span>))</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>ws_accum <span class="ot">&lt;-</span> <span class="fu">sum</span>(ws_monthly)</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>wet_stress <span class="ot">&lt;-</span> <span class="fu">clamp</span>(ws_accum, <span class="at">lower =</span> <span class="dv">0</span>, <span class="at">upper =</span> <span class="dv">1</span>)</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(wet_stress) <span class="ot">&lt;-</span> <span class="st">"wet_stress"</span></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Stress indices computed.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Cold stress range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(cold_stress), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Heat stress range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(heat_stress), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dry stress range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(dry_stress), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Wet stress range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(wet_stress), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Stress indices computed.
+Cold stress range: 0 0.003 
+Heat stress range: 0 0 
+Dry stress range: 0 0.156 
+Wet stress range: 0 0 </code></pre>
+</div>
+</div>
+</section>
+<section id="compute-ecoclimatic-index-ei" class="level2">
+<h2 class="anchored" data-anchor-id="compute-ecoclimatic-index-ei">8. Compute Ecoclimatic Index (EI)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># EI = GI_T * GI_M * (1 - CS) * (1 - HS) * (1 - DS) * (1 - WS) * 100</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>EI <span class="ot">&lt;-</span> gi_T <span class="sc">*</span> gi_M <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> cold_stress) <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> heat_stress) <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> dry_stress) <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> wet_stress) <span class="sc">*</span> <span class="dv">100</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(EI) <span class="ot">&lt;-</span> <span class="st">"EI"</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Ecoclimatic Index (EI) computed.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"EI range:"</span>, <span class="fu">round</span>(<span class="fu">range</span>(<span class="fu">values</span>(EI), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">1</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Cells with EI &gt; 0: %.1f%% of Australia</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(EI) <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">values</span>(EI)))))</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Cells with EI &gt;= 10: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(EI) <span class="sc">&gt;=</span> <span class="dv">10</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">values</span>(EI)))))</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Cells with EI &gt;= 20: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(EI) <span class="sc">&gt;=</span> <span class="dv">20</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">values</span>(EI)))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Ecoclimatic Index (EI) computed.
+EI range: 0 78.9 
+Cells with EI &gt; 0: 38.8% of Australia
+Cells with EI &gt;= 10: 25.6%
+Cells with EI &gt;= 20: 12.2%</code></pre>
+</div>
+</div>
+</section>
+<section id="validation-at-climex-reference-locations" class="level2">
+<h2 class="anchored" data-anchor-id="validation-at-climex-reference-locations">9. Validation at CLIMEX reference locations</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reference locations from Halliday &amp; Sutherst (1990) with published EI values</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>ref_locs <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">city =</span> <span class="fu">c</span>(<span class="st">"Innisfail"</span>, <span class="st">"Lismore"</span>, <span class="st">"Sydney"</span>, <span class="st">"Melbourne"</span>, <span class="st">"Brisbane"</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>           <span class="st">"Cairns"</span>, <span class="st">"Darwin"</span>, <span class="st">"Alice Springs"</span>, <span class="st">"Perth"</span>, <span class="st">"Hobart"</span>),</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">lon  =</span> <span class="fu">c</span>(<span class="fl">146.03</span>, <span class="fl">153.28</span>, <span class="fl">151.21</span>, <span class="fl">144.96</span>, <span class="fl">153.03</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>           <span class="fl">145.77</span>, <span class="fl">130.84</span>, <span class="fl">133.88</span>, <span class="fl">115.86</span>, <span class="fl">147.33</span>),</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat  =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">17.53</span>, <span class="sc">-</span><span class="fl">28.81</span>, <span class="sc">-</span><span class="fl">33.87</span>, <span class="sc">-</span><span class="fl">37.81</span>, <span class="sc">-</span><span class="fl">27.47</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>           <span class="sc">-</span><span class="fl">16.92</span>, <span class="sc">-</span><span class="fl">12.46</span>, <span class="sc">-</span><span class="fl">23.70</span>, <span class="sc">-</span><span class="fl">31.95</span>, <span class="sc">-</span><span class="fl">42.88</span>),</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">published_EI =</span> <span class="fu">c</span>(<span class="dv">63</span>, <span class="dv">43</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">note =</span> <span class="fu">c</span>(<span class="st">"Highest EI (paper)"</span>, <span class="st">"Comparable to Little Rock AR EI=44"</span>,</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>           <span class="st">""</span>, <span class="st">""</span>, <span class="st">""</span>,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>           <span class="st">"Tropical"</span>, <span class="st">"Tropical monsoon"</span>, <span class="st">"Arid interior"</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>           <span class="st">"Mediterranean"</span>, <span class="st">"Cool temperate"</span>)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>ref_pts <span class="ot">&lt;-</span> <span class="fu">vect</span>(ref_locs, <span class="at">geom =</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>), <span class="at">crs =</span> <span class="st">"EPSG:4326"</span>)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract all component indices at reference locations</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>EI              <span class="ot">&lt;-</span> <span class="fu">extract</span>(EI,          ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>GI_T            <span class="ot">&lt;-</span> <span class="fu">extract</span>(gi_T,         ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>GI_M            <span class="ot">&lt;-</span> <span class="fu">extract</span>(gi_M,         ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>cold_stress     <span class="ot">&lt;-</span> <span class="fu">extract</span>(cold_stress,   ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>heat_stress     <span class="ot">&lt;-</span> <span class="fu">extract</span>(heat_stress,   ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>dry_stress      <span class="ot">&lt;-</span> <span class="fu">extract</span>(dry_stress,    ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>ref_locs<span class="sc">$</span>wet_stress      <span class="ot">&lt;-</span> <span class="fu">extract</span>(wet_stress,    ref_pts)[, <span class="dv">2</span>]</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Validation at CLIMEX reference locations:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>ref_locs <span class="sc">%&gt;%</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">c</span>(EI, GI_T, GI_M, cold_stress, heat_stress, dry_stress, wet_stress),</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>                <span class="sc">~</span><span class="fu">round</span>(., <span class="dv">2</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>, <span class="at">width =</span> <span class="cn">Inf</span>)</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- Validation summary ---</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>innisfail_EI <span class="ot">&lt;-</span> ref_locs <span class="sc">%&gt;%</span> <span class="fu">filter</span>(city <span class="sc">==</span> <span class="st">"Innisfail"</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(EI)</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>lismore_EI   <span class="ot">&lt;-</span> ref_locs <span class="sc">%&gt;%</span> <span class="fu">filter</span>(city <span class="sc">==</span> <span class="st">"Lismore"</span>)   <span class="sc">%&gt;%</span> <span class="fu">pull</span>(EI)</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Innisfail: EI = %.1f (published: 63; target &gt; 50)</span><span class="sc">\n</span><span class="st">"</span>, innisfail_EI))</span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Lismore:   EI = %.1f (published: 43; target &gt; 30)</span><span class="sc">\n</span><span class="st">"</span>, lismore_EI))</span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(innisfail_EI) <span class="sc">&amp;&amp;</span> innisfail_EI <span class="sc">&gt;</span> <span class="dv">30</span>) {</span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"PASS: Innisfail EI &gt; 30 — tropical Queensland identified as suitable</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"CHECK: Innisfail EI unexpectedly low — review moisture or PET parameters</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(lismore_EI) <span class="sc">&amp;&amp;</span> lismore_EI <span class="sc">&gt;</span> <span class="dv">20</span>) {</span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"PASS: Lismore EI &gt; 20 — subtropical NSW identified as suitable</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"CHECK: Lismore EI unexpectedly low</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Validation at CLIMEX reference locations:
+# A tibble: 10 × 12
+   city            lon   lat published_EI note                                
+   &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt;        &lt;dbl&gt; &lt;chr&gt;                               
+ 1 Innisfail      146. -17.5           63 "Highest EI (paper)"                
+ 2 Lismore        153. -28.8           43 "Comparable to Little Rock AR EI=44"
+ 3 Sydney         151. -33.9           NA ""                                  
+ 4 Melbourne      145. -37.8           NA ""                                  
+ 5 Brisbane       153. -27.5           NA ""                                  
+ 6 Cairns         146. -16.9           NA "Tropical"                          
+ 7 Darwin         131. -12.5           NA "Tropical monsoon"                  
+ 8 Alice Springs  134. -23.7           NA "Arid interior"                     
+ 9 Perth          116. -32.0           NA "Mediterranean"                     
+10 Hobart         147. -42.9           NA "Cool temperate"                    
+      EI  GI_T  GI_M cold_stress heat_stress dry_stress wet_stress
+   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;      &lt;dbl&gt;      &lt;dbl&gt;
+ 1 77.8   0.78  1              0           0       0             0
+ 2 53.5   0.53  1              0           0       0             0
+ 3 42.2   0.42  1              0           0       0             0
+ 4 15.4   0.28  0.56           0           0       0.03          0
+ 5 59.1   0.59  1              0           0       0             0
+ 6 53.4   0.83  0.66           0           0       0.02          0
+ 7 NA    NA    NA             NA          NA      NA            NA
+ 8  0     0.61  0              0           0       0.16          0
+ 9 24.8   0.49  0.54           0           0       0.06          0
+10  9.98  0.13  0.79           0           0       0             0
+
+--- Validation summary ---
+Innisfail: EI = 77.8 (published: 63; target &gt; 50)
+Lismore:   EI = 53.5 (published: 43; target &gt; 30)
+PASS: Innisfail EI &gt; 30 — tropical Queensland identified as suitable
+PASS: Lismore EI &gt; 20 — subtropical NSW identified as suitable</code></pre>
+</div>
+</div>
+</section>
+<section id="maps" class="level2">
+<h2 class="anchored" data-anchor-id="maps">10. Maps</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>EI_df  <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(EI,  <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>gi_df  <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">c</span>(gi_T, gi_M), <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>str_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">c</span>(dry_stress, cold_stress, heat_stress), <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Map 1: Ecoclimatic Index</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>p_ei <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_raster</span>(<span class="at">data =</span> EI_df, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> EI)) <span class="sc">+</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> aus, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradientn</span>(</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"grey95"</span>, <span class="st">"#FFF7BC"</span>, <span class="st">"#FEC44F"</span>, <span class="st">"#D95F0E"</span>, <span class="st">"#7F0000"</span>),</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.01</span>, <span class="fl">0.2</span>, <span class="fl">0.5</span>, <span class="dv">1</span>),</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"EI"</span>,</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">na.value =</span> <span class="st">"grey95"</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">expression</span>(<span class="fu">italic</span>(<span class="st">"D. variabilis"</span>) <span class="sc">~</span> <span class="st">"— CLIMEX Ecoclimatic Index (re-implementation)"</span>),</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Parameters from Halliday &amp; Sutherst (1990); WorldClim 2.1 monthly climate data"</span>,</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Longitude"</span>, <span class="at">y =</span> <span class="st">"Latitude"</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">112</span>, <span class="dv">155</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">45</span>, <span class="sc">-</span><span class="dv">10</span>))</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Map 2: Growth indices</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>p_gi <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_raster</span>(<span class="at">data =</span> gi_df <span class="sc">%&gt;%</span> <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(gi_T, gi_M), <span class="at">names_to =</span> <span class="st">"index"</span>),</span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>              <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> value)) <span class="sc">+</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> aus, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>index, <span class="at">labeller =</span> <span class="fu">labeller</span>(<span class="at">index =</span> <span class="fu">c</span>(<span class="at">gi_T =</span> <span class="st">"GI_T (Temperature Growth)"</span>,</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>                                                    <span class="at">gi_M =</span> <span class="st">"GI_M (Moisture Growth)"</span>))) <span class="sc">+</span></span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">name =</span> <span class="st">"Index</span><span class="sc">\n</span><span class="st">value"</span>, <span class="at">option =</span> <span class="st">"plasma"</span>) <span class="sc">+</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Longitude"</span>, <span class="at">y =</span> <span class="st">"Latitude"</span>) <span class="sc">+</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>)) <span class="sc">+</span></span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">112</span>, <span class="dv">155</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">45</span>, <span class="sc">-</span><span class="dv">10</span>))</span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Map 3: Dominant limiting stress</span></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>str_df_long <span class="ot">&lt;-</span> str_df <span class="sc">%&gt;%</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(dry_stress, cold_stress, heat_stress), <span class="at">names_to =</span> <span class="st">"stress_type"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(x, y) <span class="sc">%&gt;%</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(value, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">stress_type =</span> <span class="fu">factor</span>(stress_type,</span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>                              <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"dry_stress"</span>, <span class="st">"heat_stress"</span>, <span class="st">"cold_stress"</span>),</span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>                              <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Dry stress"</span>, <span class="st">"Heat stress"</span>, <span class="st">"Cold stress"</span>)))</span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>p_stress <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_raster</span>(<span class="at">data =</span> str_df_long, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> stress_type)) <span class="sc">+</span></span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> aus, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Dry stress"</span> <span class="ot">=</span> <span class="st">"#D95F02"</span>,</span>
+<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Heat stress"</span> <span class="ot">=</span> <span class="st">"#E7298A"</span>,</span>
+<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Cold stress"</span> <span class="ot">=</span> <span class="st">"#1F78B4"</span>),</span>
+<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a>                    <span class="at">name =</span> <span class="st">"Dominant</span><span class="sc">\n</span><span class="st">limiting stress"</span>) <span class="sc">+</span></span>
+<span id="cb21-53"><a href="#cb21-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb21-54"><a href="#cb21-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">expression</span>(<span class="fu">italic</span>(<span class="st">"D. variabilis"</span>) <span class="sc">~</span> <span class="st">"— Dominant CLIMEX Stress"</span>),</span>
+<span id="cb21-55"><a href="#cb21-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Most limiting stress factor by cell"</span>,</span>
+<span id="cb21-56"><a href="#cb21-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Longitude"</span>, <span class="at">y =</span> <span class="st">"Latitude"</span></span>
+<span id="cb21-57"><a href="#cb21-57" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb21-58"><a href="#cb21-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb21-59"><a href="#cb21-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">112</span>, <span class="dv">155</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">45</span>, <span class="sc">-</span><span class="dv">10</span>))</span>
+<span id="cb21-60"><a href="#cb21-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-61"><a href="#cb21-61" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(p_ei <span class="sc">/</span> p_gi <span class="sc">/</span> p_stress)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05e_climex_reimplementation_files/figure-html/maps-1.png" class="img-fluid figure-img" width="1344"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">file.path</span>(figures_dir, <span class="st">"05e_climex_reimplementation.png"</span>),</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>       p_ei <span class="sc">/</span> p_gi <span class="sc">/</span> p_stress, <span class="at">width =</span> <span class="dv">10</span>, <span class="at">height =</span> <span class="dv">18</span>, <span class="at">dpi =</span> <span class="dv">300</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="area-estimates-and-comparison-with-sdms" class="level2">
+<h2 class="anchored" data-anchor-id="area-estimates-and-comparison-with-sdms">11. Area estimates and comparison with SDMs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>cell_areas     <span class="ot">&lt;-</span> <span class="fu">cellSize</span>(EI, <span class="at">unit =</span> <span class="st">"km"</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>aus_total_area <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> <span class="sc">!</span><span class="fu">is.na</span>(EI)), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>EI_gt0  <span class="ot">&lt;-</span> EI <span class="sc">&gt;</span> <span class="dv">0</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>EI_gt10 <span class="ot">&lt;-</span> EI <span class="sc">&gt;=</span> <span class="dv">10</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>EI_gt20 <span class="ot">&lt;-</span> EI <span class="sc">&gt;=</span> <span class="dv">20</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>EI_gt30 <span class="ot">&lt;-</span> EI <span class="sc">&gt;=</span> <span class="dv">30</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"CLIMEX Ecoclimatic Index area estimates:</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (thr <span class="cf">in</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>)) {</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  area <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> (EI <span class="sc">&gt;</span> thr)), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  EI &gt; %2d: %9.0f km² (%.1f%% of Australia)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>              thr, area, <span class="dv">100</span> <span class="sc">*</span> area <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Load SDM predictions for comparison</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>pred_maxent_A <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"pred_aus_maxent.tif"</span>))</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>pred_brt_A    <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"pred_aus_brt.tif"</span>))</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>thresholds    <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"model_thresholds.rds"</span>))</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>maxent_binary <span class="ot">&lt;-</span> pred_maxent_A <span class="sc">&gt;=</span> thresholds<span class="sc">$</span>maxent<span class="sc">$</span>maxss</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>brt_binary    <span class="ot">&lt;-</span> pred_brt_A   <span class="sc">&gt;=</span> thresholds<span class="sc">$</span>brt<span class="sc">$</span>maxss</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Resample binary SDM maps to EI resolution if needed</span></span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">compareGeom</span>(EI, maxent_binary, <span class="at">stopOnError =</span> <span class="cn">FALSE</span>)) {</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  maxent_binary <span class="ot">&lt;-</span> <span class="fu">resample</span>(maxent_binary, EI, <span class="at">method =</span> <span class="st">"near"</span>)</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  brt_binary    <span class="ot">&lt;-</span> <span class="fu">resample</span>(brt_binary,    EI, <span class="at">method =</span> <span class="st">"near"</span>)</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>maxent_area <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> maxent_binary), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>brt_area    <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> brt_binary),    <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>EI_gt20_area <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> EI_gt20), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Agreement: EI &gt; 20 AND MaxEnt suitable</span></span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>agree_maxent <span class="ot">&lt;-</span> EI_gt20 <span class="sc">&amp;</span> maxent_binary</span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>agree_brt    <span class="ot">&lt;-</span> EI_gt20 <span class="sc">&amp;</span> brt_binary</span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>agree_all    <span class="ot">&lt;-</span> EI_gt20 <span class="sc">&amp;</span> maxent_binary <span class="sc">&amp;</span> brt_binary</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- Comparison with correlative SDMs (Set A, MaxSS threshold) ---</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MaxEnt suitable:           %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>            maxent_area, <span class="dv">100</span> <span class="sc">*</span> maxent_area <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BRT suitable:              %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>            brt_area, <span class="dv">100</span> <span class="sc">*</span> brt_area <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"CLIMEX EI &gt;= 20:           %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a>            EI_gt20_area, <span class="dv">100</span> <span class="sc">*</span> EI_gt20_area <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MaxEnt AND CLIMEX EI&gt;=20:  %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a>            <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_maxent), <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb23-48"><a href="#cb23-48" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_maxent), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-49"><a href="#cb23-49" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BRT AND CLIMEX EI&gt;=20:     %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-50"><a href="#cb23-50" aria-hidden="true" tabindex="-1"></a>            <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_brt), <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb23-51"><a href="#cb23-51" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_brt), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> aus_total_area))</span>
+<span id="cb23-52"><a href="#cb23-52" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MaxEnt AND BRT AND CLIMEX: %9.0f km² (%.1f%%)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb23-53"><a href="#cb23-53" aria-hidden="true" tabindex="-1"></a>            <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_all), <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb23-54"><a href="#cb23-54" aria-hidden="true" tabindex="-1"></a>            <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">values</span>(cell_areas <span class="sc">*</span> agree_all), <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> aus_total_area))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CLIMEX Ecoclimatic Index area estimates:
+
+  EI &gt;  0:   2978458 km² (38.5% of Australia)
+  EI &gt; 10:   1989441 km² (25.7% of Australia)
+  EI &gt; 20:    978511 km² (12.7% of Australia)
+  EI &gt; 30:    367465 km² (4.8% of Australia)
+  EI &gt; 40:    161656 km² (2.1% of Australia)
+
+--- Comparison with correlative SDMs (Set A, MaxSS threshold) ---
+MaxEnt suitable:              217704 km² (2.8%)
+BRT suitable:                 223710 km² (2.9%)
+CLIMEX EI &gt;= 20:              978511 km² (12.7%)
+MaxEnt AND CLIMEX EI&gt;=20:     161278 km² (2.1%)
+BRT AND CLIMEX EI&gt;=20:        170987 km² (2.2%)
+MaxEnt AND BRT AND CLIMEX:    151630 km² (2.0%)</code></pre>
+</div>
+</div>
+</section>
+<section id="save-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="save-outputs">12. Save outputs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(EI, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_EI_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(gi_T, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_gi_T_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(gi_M, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_gi_M_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(dry_stress,  <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_dry_stress_aus.tif"</span>),  <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(cold_stress, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_cold_stress_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(heat_stress, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_heat_stress_aus.tif"</span>), <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ref_locs, <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_reference_validation.csv"</span>))</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Saved CLIMEX re-implementation outputs.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Key file: processed_data/climex_EI_aus.tif</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Validation table: processed_data/climex_reference_validation.csv</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">======================================================</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  CLIMEX RE-IMPLEMENTATION SUMMARY</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"======================================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Method: CLIMEX EI (Halliday &amp; Sutherst 1990 parameters)</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Climate data: WorldClim 2.1 monthly Tmax, Tmin, Prec at 2.5 arcmin</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"PET method: Thornthwaite with PETCF = %.2f</span><span class="sc">\n\n</span><span class="st">"</span>, PETCF))</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Validation:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Innisfail: EI = %.1f  (published: 63)</span><span class="sc">\n</span><span class="st">"</span>, innisfail_EI))</span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Lismore:   EI = %.1f  (published: 43)</span><span class="sc">\n</span><span class="st">"</span>, lismore_EI))</span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">abs</span>(innisfail_EI <span class="sc">-</span> <span class="dv">63</span>) <span class="sc">&lt;</span> <span class="dv">20</span> <span class="sc">&amp;&amp;</span> <span class="fu">abs</span>(lismore_EI <span class="sc">-</span> <span class="dv">43</span>) <span class="sc">&lt;</span> <span class="dv">15</span>) {</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">CONCLUSION: EI values within acceptable range of published values.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"This model provides independent physiological evidence that the east</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"coast of Australia (especially Cairns–Melbourne corridor) is climatically</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"suitable for D. variabilis establishment.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">NOTE: EI values differ from published values. Consider adjusting PETCF</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"or PET method. The Thornthwaite PET is a simplification — CLIMEX originally</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"used open-pan evaporation data which may give different absolute values.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Even with different absolute EI values, the SPATIAL PATTERN of suitability</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"(east coast vs arid interior) should be ecologically interpretable.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Saved CLIMEX re-implementation outputs.
+Key file: processed_data/climex_EI_aus.tif
+Validation table: processed_data/climex_reference_validation.csv
+
+======================================================
+  CLIMEX RE-IMPLEMENTATION SUMMARY
+======================================================
+
+Method: CLIMEX EI (Halliday &amp; Sutherst 1990 parameters)
+Climate data: WorldClim 2.1 monthly Tmax, Tmin, Prec at 2.5 arcmin
+PET method: Thornthwaite with PETCF = 0.80
+
+Validation:
+  Innisfail: EI = 77.8  (published: 63)
+  Lismore:   EI = 53.5  (published: 43)
+
+CONCLUSION: EI values within acceptable range of published values.
+This model provides independent physiological evidence that the east
+coast of Australia (especially Cairns–Melbourne corridor) is climatically
+suitable for D. variabilis establishment.</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

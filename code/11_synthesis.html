@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Alexander W. Gofton">
+<meta name="dcterms.date" content="2026-04-07">
+
+<title>Step 11: Synthesis — Multi-Approach Comparison</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="11_synthesis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="11_synthesis_files/libs/quarto-html/quarto.js"></script>
+<script src="11_synthesis_files/libs/quarto-html/popper.min.js"></script>
+<script src="11_synthesis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="11_synthesis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="11_synthesis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="11_synthesis_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="11_synthesis_files/libs/quarto-html/quarto-syntax-highlighting-dark-8ea72dc5fed832574809a9c94082fbbb.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="11_synthesis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="11_synthesis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="11_synthesis_files/libs/bootstrap/bootstrap-0e8d46d49afdcf27eef7cf8bb79e73b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="11_synthesis_files/libs/bootstrap/bootstrap-dark-1666a84f562704a6c566dacccee1c77b.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#load-all-outputs" id="toc-load-all-outputs" class="nav-link" data-scroll-target="#load-all-outputs">1. Load all outputs</a></li>
+  <li><a href="#key-findings-summary-table" id="toc-key-findings-summary-table" class="nav-link" data-scroll-target="#key-findings-summary-table">2. Key findings summary table</a></li>
+  <li><a href="#comprehensive-area-comparison" id="toc-comprehensive-area-comparison" class="nav-link" data-scroll-target="#comprehensive-area-comparison">3. Comprehensive area comparison</a></li>
+  <li><a href="#multi-panel-synthesis-figure" id="toc-multi-panel-synthesis-figure" class="nav-link" data-scroll-target="#multi-panel-synthesis-figure">4. Multi-panel synthesis figure</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions">5. Conclusions</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="11_synthesis.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Step 11: Synthesis — Multi-Approach Comparison</h1>
+<p class="subtitle lead"><em>Dermacentor variabilis</em> Species Distribution Model</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alexander W. Gofton </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 7, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>This script synthesises results from all analyses into a comprehensive comparison for the biosecurity assessment. It produces:</p>
+<ol type="1">
+<li>A multi-panel figure comparing all suitability estimates</li>
+<li>A summary table of area estimates across all approaches</li>
+<li>Key diagnostic comparisons (model agreement, MESS, niche overlap)</li>
+<li>Final defensible conclusions</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rnaturalearth)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rnaturalearthdata)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="load-all-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="load-all-outputs">1. Load all outputs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>base_dir <span class="ot">&lt;-</span> <span class="st">"~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>processed_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"processed_data"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>figures_dir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"figures"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>aus <span class="ot">&lt;-</span> <span class="fu">ne_countries</span>(<span class="at">country =</span> <span class="st">"Australia"</span>, <span class="at">scale =</span> <span class="st">"medium"</span>, <span class="at">returnclass =</span> <span class="st">"sf"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Load available outputs (check existence before loading)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>load_if <span class="ot">&lt;-</span> <span class="cf">function</span>(file, <span class="at">type =</span> <span class="st">"raster"</span>) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(processed_dir, file)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(path)) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (type <span class="sc">==</span> <span class="st">"raster"</span>) <span class="fu">return</span>(<span class="fu">rast</span>(path))</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (type <span class="sc">==</span> <span class="st">"csv"</span>) <span class="fu">return</span>(<span class="fu">read_csv</span>(path, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (type <span class="sc">==</span> <span class="st">"rds"</span>) <span class="fu">return</span>(<span class="fu">readRDS</span>(path))</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Area comparison table</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>area_table <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"comprehensive_area_comparison.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Sensitivity summary</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>sensitivity_summary <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"sensitivity_summary.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Niche sensitivity</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>niche_comparison <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"niche_sensitivity_comparison.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Limiting factors</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>lim_factors <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"limiting_factor_counts.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Per-variable novelty</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>var_novelty <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"per_variable_novelty.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Response curve divergence</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>response_divergence <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"response_curve_divergence.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Niche truncation</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>niche_truncation <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"niche_truncation_summary.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co"># CLIMEX reference locations</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>climex_refs <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"climate_analogue_reference_locations.csv"</span>, <span class="st">"csv"</span>)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Loaded available synthesis inputs</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Loaded available synthesis inputs</code></pre>
+</div>
+</div>
+</section>
+<section id="key-findings-summary-table" class="level2">
+<h2 class="anchored" data-anchor-id="key-findings-summary-table">2. Key findings summary table</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"======================================================</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  D. VARIABILIS SDM — SYNTHESIS OF FINDINGS</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  Biosecurity Assessment: Australian Climate Suitability</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"======================================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"--- 1. THE BIO1 PROBLEM (RESOLVED) ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Original analysis: Bio1 had 66.4% MaxEnt contribution but 0.124% permutation</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"importance — a multicollinearity artefact (VIF = 47.25). Bio1 encodes winter</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"severity in N. America, which is irrelevant to Australian establishment risk.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(sensitivity_summary)) {</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"After removing Bio1 (Set B/C):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(sensitivity_summary <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(Metric, Set_A, Set_B, Set_C), <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 2. MODEL AGREEMENT IMPROVEMENT ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Original (Set A): MaxEnt:BRT area ratio = 6.7x, prediction correlation = 0.384</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(sensitivity_summary)) {</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Sensitivity results shown in table above.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Expected: area ratio decreases and correlation increases with Set B/C.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 3. MESS DECOMPOSITION ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(var_novelty)) {</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Per-variable novelty in Australia:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  var_novelty <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(pct_novel)) <span class="sc">%&gt;%</span> <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">If Bio1/Bio7 dominate novelty, the 64.2% 'novel climate' is inflated.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 4. NICHE ANALYSIS SENSITIVITY ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(niche_comparison)) {</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Niche overlap comparison:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(niche_comparison, <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 5. LIMITING FACTORS ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(lim_factors)) {</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Most limiting variable across Australia (Set C):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(lim_factors, <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">CLIMEX validation: low humidity should dominate inland/western regions.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 6. NICHE TRUNCATION ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(niche_truncation)) {</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>  trunc_vars <span class="ot">&lt;-</span> niche_truncation <span class="sc">%&gt;%</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(truncated_high <span class="sc">|</span> truncated_low) <span class="sc">%&gt;%</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(variable)</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(trunc_vars) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Variables with truncated niches:"</span>, <span class="fu">paste</span>(trunc_vars, <span class="at">collapse =</span> <span class="st">", "</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"True niche limits cannot be estimated for these variables.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"No niche truncation detected.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 7. RESPONSE CURVE DIAGNOSIS ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(response_divergence)) {</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Variables driving MaxEnt-BRT disagreement (ranked by mean abs. difference):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>  response_divergence <span class="sc">%&gt;%</span></span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(variable, mean_abs_diff, maxent_higher_pct, aus_range_in_training_pct) <span class="sc">%&gt;%</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>======================================================
+  D. VARIABILIS SDM — SYNTHESIS OF FINDINGS
+  Biosecurity Assessment: Australian Climate Suitability
+======================================================
+
+--- 1. THE BIO1 PROBLEM (RESOLVED) ---
+
+Original analysis: Bio1 had 66.4% MaxEnt contribution but 0.124% permutation
+importance — a multicollinearity artefact (VIF = 47.25). Bio1 encodes winter
+severity in N. America, which is irrelevant to Australian establishment risk.
+
+After removing Bio1 (Set B/C):
+# A tibble: 15 × 4
+   Metric                        Set_A      Set_B      Set_C
+   &lt;chr&gt;                         &lt;dbl&gt;      &lt;dbl&gt;      &lt;dbl&gt;
+ 1 MaxEnt AUC (train)            0.749      0.848      0.849
+ 2 BRT AUC (train)               0.948      0.881      0.887
+ 3 MaxEnt Boyce                  0.851      1          1    
+ 4 BRT Boyce                     1          0.999      0.999
+ 5 MaxEnt TSS                    0.422      0.549      0.564
+ 6 BRT TSS                       0.77       0.608      0.631
+ 7 Pred. corr. (presence)        0.384      0.939      0.878
+ 8 Pred. corr. (background)      0.612      0.95       0.967
+ 9 MaxEnt area (km2)        217704     237768     185450    
+10 BRT area (km2)           223710     232643     213425    
+11 MaxEnt area (%)               2.8        3.1        2.4  
+12 BRT area (%)                  2.9        3          2.8  
+13 MaxEnt:BRT area ratio         1          1          0.9  
+14 MESS novelty (%)             64.2       13         16.6  
+15 Aus. pred. correlation       NA          0.408      0.489
+
+--- 2. MODEL AGREEMENT IMPROVEMENT ---
+
+Original (Set A): MaxEnt:BRT area ratio = 6.7x, prediction correlation = 0.384
+Sensitivity results shown in table above.
+Expected: area ratio decreases and correlation increases with Set B/C.
+
+--- 3. MESS DECOMPOSITION ---
+
+Per-variable novelty in Australia:
+# A tibble: 5 × 6
+  variable    pct_novel pct_novel_below pct_novel_above mess_min mess_max
+  &lt;chr&gt;           &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+1 bio15            34.3               0            34.3    -27.5       50
+2 bio1             15.2               0            15.2     -9.2       50
+3 bio7              5.4               0             5.4    -23.6       50
+4 aridity_idx       1.7               0             1.7     -1.6       50
+5 bio12             0                 0             0       -9.8       50
+
+If Bio1/Bio7 dominate novelty, the 64.2% 'novel climate' is inflated.
+
+--- 4. NICHE ANALYSIS SENSITIVITY ---
+
+Niche overlap comparison:
+# A tibble: 7 × 3
+  Metric                         Set_A   Set_C
+  &lt;chr&gt;                          &lt;dbl&gt;   &lt;dbl&gt;
+1 Schoener's D                  0.272   0.232 
+2 Warren's I                    0.49    0.449 
+3 Equivalency p-value           0.001   0.001 
+4 Similarity (Native -&gt; Aus) p  0.177   0.0969
+5 Similarity (Aus -&gt; Native) p  0.0839  0.0809
+6 PC1 variance (%)             68.9    53.9   
+7 PC2 variance (%)             14.8    31.1   
+
+--- 5. LIMITING FACTORS ---
+
+Most limiting variable across Australia (Set C):
+# A tibble: 7 × 3
+  variable             n   pct
+  &lt;chr&gt;            &lt;dbl&gt; &lt;dbl&gt;
+1 aridity_idx     238469  59  
+2 vpd_annual      105721  26.2
+3 bio5             25103   6.2
+4 PET_seasonality  18017   4.5
+5 bio10            14824   3.7
+6 bio15             1368   0.3
+7 bio12              762   0.2
+
+CLIMEX validation: low humidity should dominate inland/western regions.
+
+--- 6. NICHE TRUNCATION ---
+
+Variables with truncated niches: aridity_idx, bio12, bio15, bio7 
+True niche limits cannot be estimated for these variables.
+
+--- 7. RESPONSE CURVE DIAGNOSIS ---
+
+Variables driving MaxEnt-BRT disagreement (ranked by mean abs. difference):
+# A tibble: 5 × 4
+  variable    mean_abs_diff maxent_higher_pct aus_range_in_training_pct
+  &lt;chr&gt;               &lt;dbl&gt;             &lt;dbl&gt;                     &lt;dbl&gt;
+1 bio15              0.111               35.0                      91.4
+2 bio1               0.0700              54.7                      88.3
+3 bio7               0.0659              59.9                      82.2
+4 bio12              0.0625              23.0                     100  
+5 aridity_idx        0.0266              35                        98  </code></pre>
+</div>
+</div>
+</section>
+<section id="comprehensive-area-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="comprehensive-area-comparison">3. Comprehensive area comparison</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 8. AREA ESTIMATES ACROSS ALL APPROACHES ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(area_table)) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(area_table, <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Run 07c_improved_ensemble.qmd first to generate area comparison.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">--- 9. CLIMEX REFERENCE LOCATIONS ---</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(climex_refs)) {</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(climex_refs, <span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+--- 8. AREA ESTIMATES ACROSS ALL APPROACHES ---
+
+# A tibble: 13 × 3
+   Approach                       Area_km2 Pct_Australia
+   &lt;chr&gt;                             &lt;dbl&gt;         &lt;dbl&gt;
+ 1 Set A: MaxEnt only               217704           2.8
+ 2 Set A: BRT only                  223710           2.9
+ 3 Set A: Intersection              189582           2.5
+ 4 Set B: MaxEnt only               237768           3.1
+ 5 Set B: BRT only                  232643           3  
+ 6 Set B: Intersection              210057           2.7
+ 7 Set C: MaxEnt only               185450           2.4
+ 8 Set C: BRT only                  213425           2.8
+ 9 Set C: Intersection              165276           2.1
+10 CLIMEX constraints               243962           3.2
+11 Climate analogue (95% CI)         16412           0.2
+12 Multi-evidence (&gt;=2 methods)     145729           1.9
+13 Multi-evidence (all 3 methods)     6750           0.1
+
+--- 9. CLIMEX REFERENCE LOCATIONS ---
+
+# A tibble: 10 × 7
+   city            lon   lat climex_EI climex_note          mahal_dist   p_value
+   &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;                     &lt;dbl&gt;     &lt;dbl&gt;
+ 1 Innisfail      146. -17.5        63 Highest EI               1709.   0       
+ 2 Lismore        153. -28.8        43 ~ Little Rock AR (E…       44.7  1.54e- 7
+ 3 Sydney         151. -33.9        NA &lt;NA&gt;                       51.4  7.75e- 9
+ 4 Melbourne      145. -37.8        NA &lt;NA&gt;                       33.5  2.15e- 5
+ 5 Perth          116. -32.0        NA Dry                       130.   0       
+ 6 Darwin         131. -12.5        NA Tropical                   NA   NA       
+ 7 Alice Springs  134. -23.7        NA Arid                      304.   0       
+ 8 Hobart         147. -42.9        NA Cool temperate             79.9  1.48e-14
+ 9 Brisbane       153. -27.5        NA &lt;NA&gt;                       51.2  8.50e- 9
+10 Cairns         146. -16.9        NA Tropical                 1031.   0       </code></pre>
+</div>
+</div>
+</section>
+<section id="multi-panel-synthesis-figure" class="level2">
+<h2 class="anchored" data-anchor-id="multi-panel-synthesis-figure">4. Multi-panel synthesis figure</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Collect all available binary suitability maps</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>map_panels <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Original models</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>thresh_A <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"model_thresholds.rds"</span>, <span class="st">"rds"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>pred_A_me <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_maxent.tif"</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>pred_A_brt <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_brt.tif"</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(pred_A_me) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(thresh_A)) {</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set A: MaxEnt</span><span class="sc">\n</span><span class="st">(with Bio1)"</span>]] <span class="ot">&lt;-</span> pred_A_me <span class="sc">&gt;=</span> thresh_A<span class="sc">$</span>maxent<span class="sc">$</span>maxss</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set A: BRT</span><span class="sc">\n</span><span class="st">(with Bio1)"</span>]] <span class="ot">&lt;-</span> pred_A_brt <span class="sc">&gt;=</span> thresh_A<span class="sc">$</span>brt<span class="sc">$</span>maxss</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Set B models</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>pred_B_me <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_maxent_setB.tif"</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>pred_B_brt <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_brt_setB.tif"</span>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>thresh_sens <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"sensitivity_thresholds.rds"</span>, <span class="st">"rds"</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(pred_B_me) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(thresh_sens)) {</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set B: MaxEnt</span><span class="sc">\n</span><span class="st">(no Bio1)"</span>]] <span class="ot">&lt;-</span> pred_B_me <span class="sc">&gt;=</span> thresh_sens<span class="sc">$</span>setB<span class="sc">$</span>maxent<span class="sc">$</span>threshold</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set B: BRT</span><span class="sc">\n</span><span class="st">(no Bio1)"</span>]] <span class="ot">&lt;-</span> pred_B_brt <span class="sc">&gt;=</span> thresh_sens<span class="sc">$</span>setB<span class="sc">$</span>brt<span class="sc">$</span>threshold</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Set C models</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>pred_C_me <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_maxent_setC.tif"</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>pred_C_brt <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"pred_aus_brt_setC.tif"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(pred_C_me) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(thresh_sens)) {</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set C: MaxEnt</span><span class="sc">\n</span><span class="st">(moisture)"</span>]] <span class="ot">&lt;-</span> pred_C_me <span class="sc">&gt;=</span> thresh_sens<span class="sc">$</span>setC<span class="sc">$</span>maxent<span class="sc">$</span>threshold</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Set C: BRT</span><span class="sc">\n</span><span class="st">(moisture)"</span>]] <span class="ot">&lt;-</span> pred_C_brt <span class="sc">&gt;=</span> thresh_sens<span class="sc">$</span>setC<span class="sc">$</span>brt<span class="sc">$</span>threshold</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a><span class="co"># CLIMEX</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>climex <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"climex_suitable_aus.tif"</span>)</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(climex)) {</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"CLIMEX Constraints</span><span class="sc">\n</span><span class="st">(Halliday &amp; Sutherst 1990)"</span>]] <span class="ot">&lt;-</span> climex</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Climate analogue</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>mahal <span class="ot">&lt;-</span> <span class="fu">load_if</span>(<span class="st">"mahalanobis_distance_aus.tif"</span>)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(mahal)) {</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>  set_C_vars <span class="ot">&lt;-</span> <span class="fu">readLines</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"selected_variables_setC.txt"</span>))</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>  chi95 <span class="ot">&lt;-</span> <span class="fu">qchisq</span>(<span class="fl">0.95</span>, <span class="at">df =</span> <span class="fu">length</span>(set_C_vars))</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>  map_panels[[<span class="st">"Climate Analogue</span><span class="sc">\n</span><span class="st">(Mahalanobis 95%)"</span>]] <span class="ot">&lt;-</span> mahal <span class="sc">&lt;=</span> chi95</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a><span class="co"># Build multi-panel plot</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(map_panels) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>  all_panel_data <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (nm <span class="cf">in</span> <span class="fu">names</span>(map_panels)) {</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(map_panels[[nm]], <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(df)[<span class="dv">3</span>] <span class="ot">&lt;-</span> <span class="st">"suitable"</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>    df<span class="sc">$</span>panel <span class="ot">&lt;-</span> nm</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>    all_panel_data <span class="ot">&lt;-</span> <span class="fu">c</span>(all_panel_data, <span class="fu">list</span>(df))</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>  panel_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(all_panel_data)</span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>  panel_df<span class="sc">$</span>panel <span class="ot">&lt;-</span> <span class="fu">factor</span>(panel_df<span class="sc">$</span>panel, <span class="at">levels =</span> <span class="fu">names</span>(map_panels))</span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>  n_panels <span class="ot">&lt;-</span> <span class="fu">length</span>(map_panels)</span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>  ncol_fig <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>  nrow_fig <span class="ot">&lt;-</span> <span class="fu">ceiling</span>(n_panels <span class="sc">/</span> ncol_fig)</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>  p_synth <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_raster</span>(<span class="at">data =</span> panel_df, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y, <span class="at">fill =</span> <span class="fu">factor</span>(<span class="fu">as.integer</span>(suitable)))) <span class="sc">+</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="at">data =</span> aus, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>panel, <span class="at">ncol =</span> ncol_fig) <span class="sc">+</span></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(</span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>      <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"0"</span> <span class="ot">=</span> <span class="st">"grey90"</span>, <span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#D55E00"</span>),</span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Unsuitable"</span>, <span class="st">"Suitable"</span>),</span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>      <span class="at">name =</span> <span class="st">"Suitability"</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>      <span class="at">title =</span> <span class="fu">expression</span>(<span class="fu">italic</span>(<span class="st">"D. variabilis"</span>) <span class="sc">~</span> <span class="st">"— Multi-Approach Suitability Comparison"</span>),</span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>      <span class="at">subtitle =</span> <span class="st">"Comparing SDMs (3 variable sets), CLIMEX constraints, and climate analogue mapping"</span>,</span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"Longitude"</span>, <span class="at">y =</span> <span class="st">"Latitude"</span></span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>      <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">9</span>),</span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>      <span class="at">legend.position =</span> <span class="st">"bottom"</span></span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">112</span>, <span class="dv">155</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">45</span>, <span class="sc">-</span><span class="dv">10</span>))</span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(p_synth)</span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggsave</span>(<span class="fu">file.path</span>(figures_dir, <span class="st">"11_synthesis_comparison.png"</span>),</span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>         p_synth, <span class="at">width =</span> <span class="dv">16</span>, <span class="at">height =</span> <span class="dv">4</span> <span class="sc">*</span> nrow_fig <span class="sc">+</span> <span class="dv">2</span>, <span class="at">dpi =</span> <span class="dv">300</span>)</span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="11_synthesis_files/figure-html/synthesis-figure-1.png" class="img-fluid figure-img" width="1536"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">5. Conclusions</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"======================================================</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  FINAL CONCLUSIONS — BIOSECURITY ASSESSMENT</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"======================================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"1. VARIABLE SELECTION IS CRITICAL FOR CROSS-CONTINENTAL PROJECTION</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Bio1 (annual mean temperature) caused a 7x disagreement between MaxEnt</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     and BRT because it encodes winter severity — irrelevant to Australia.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Removing Bio1 (and Bio7) and adding VPD produces models that agree</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     better and align with CLIMEX process-based predictions.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"2. MOISTURE IS THE PRIMARY LIMITING FACTOR</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Consistent across three independent approaches:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     a) CLIMEX (Halliday &amp; Sutherst 1990): low summer humidity limits establishment</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     b) Limiting factor analysis: aridity/PET dominate inland Australia</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     c) SDMs with moisture-focused variables: predictions concentrate on humid coast</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"3. AUSTRALIAN EAST COAST IS CLIMATICALLY SUITABLE</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Multiple evidence lines converge on the east coast (Cairns to Melbourne)</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     as the primary zone of climatic suitability.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - CLIMEX reference: Innisfail QLD (EI=63), Lismore NSW (EI=43,</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     comparable to Little Rock AR in the centre of the tick's range).</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"4. CONFIDENCE ASSESSMENT</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - HIGH CONFIDENCE: East coast from SE Queensland to Victoria is suitable.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - MODERATE CONFIDENCE: Tropical north (Far North QLD, NT coast) is suitable.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - LOW CONFIDENCE: Inland and western regions — climate is too dry.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - NEGLIGIBLE RISK: Central/western arid zones.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"5. CAVEATS</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Correlative SDMs cannot capture biotic interactions (host availability,</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     competition with native Ixodes/Haemaphysalis ticks).</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - The fundamental niche may be broader than the realised niche in</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     eastern N. America (niche truncation detected for some variables).</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - Microhabitat buffering (leaf litter humidity) is not captured by</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     macroclimatic variables.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   - A full CLIMEX re-analysis with updated climate data would provide</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"     the most defensible process-based assessment.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"6. RECOMMENDED DEFENSIBLE ESTIMATE</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   The area of highest-confidence suitability corresponds to the multi-evidence</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   intersection: where moisture-focused SDMs (both MaxEnt and BRT agree),</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   CLIMEX physiological constraints are met, AND climate analogue analysis</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"   shows high similarity to the native range.</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>======================================================
+  FINAL CONCLUSIONS — BIOSECURITY ASSESSMENT
+======================================================
+
+1. VARIABLE SELECTION IS CRITICAL FOR CROSS-CONTINENTAL PROJECTION
+   - Bio1 (annual mean temperature) caused a 7x disagreement between MaxEnt
+     and BRT because it encodes winter severity — irrelevant to Australia.
+   - Removing Bio1 (and Bio7) and adding VPD produces models that agree
+     better and align with CLIMEX process-based predictions.
+
+2. MOISTURE IS THE PRIMARY LIMITING FACTOR
+   - Consistent across three independent approaches:
+     a) CLIMEX (Halliday &amp; Sutherst 1990): low summer humidity limits establishment
+     b) Limiting factor analysis: aridity/PET dominate inland Australia
+     c) SDMs with moisture-focused variables: predictions concentrate on humid coast
+
+3. AUSTRALIAN EAST COAST IS CLIMATICALLY SUITABLE
+   - Multiple evidence lines converge on the east coast (Cairns to Melbourne)
+     as the primary zone of climatic suitability.
+   - CLIMEX reference: Innisfail QLD (EI=63), Lismore NSW (EI=43,
+     comparable to Little Rock AR in the centre of the tick's range).
+
+4. CONFIDENCE ASSESSMENT
+   - HIGH CONFIDENCE: East coast from SE Queensland to Victoria is suitable.
+   - MODERATE CONFIDENCE: Tropical north (Far North QLD, NT coast) is suitable.
+   - LOW CONFIDENCE: Inland and western regions — climate is too dry.
+   - NEGLIGIBLE RISK: Central/western arid zones.
+
+5. CAVEATS
+   - Correlative SDMs cannot capture biotic interactions (host availability,
+     competition with native Ixodes/Haemaphysalis ticks).
+   - The fundamental niche may be broader than the realised niche in
+     eastern N. America (niche truncation detected for some variables).
+   - Microhabitat buffering (leaf litter humidity) is not captured by
+     macroclimatic variables.
+   - A full CLIMEX re-analysis with updated climate data would provide
+     the most defensible process-based assessment.
+
+6. RECOMMENDED DEFENSIBLE ESTIMATE
+   The area of highest-confidence suitability corresponds to the multi-evidence
+   intersection: where moisture-focused SDMs (both MaxEnt and BRT agree),
+   CLIMEX physiological constraints are met, AND climate analogue analysis
+   shows high similarity to the native range.</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
