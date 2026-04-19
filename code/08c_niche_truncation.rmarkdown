@@ -1,0 +1,354 @@
+---
+title: "Step 8c: Niche Truncation Assessment"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+
+
+
+## Overview
+
+Niche truncation occurs when a species' response curve is still rising or
+remains at maximum suitability at the boundary of available environmental
+conditions in the training region. When truncated, the correlative model cannot
+estimate the true niche boundary — it has never "seen" where the species stops
+occurring along that gradient.
+
+For cross-continental projection, niche truncation means the model's response
+may be completely wrong beyond the training range. This is particularly relevant
+for *D. variabilis*:
+
+- **Warm-season variables (Bio5, Bio10):** If the species occurs at the warmest
+  available conditions in eastern N. America, we cannot determine its upper
+  thermal limit from correlative data alone.
+- **Moisture variables (aridity_idx, PET_seasonality):** If the species avoids
+  the driest conditions available, this validates humidity limitation.
+- **Cold variables (Bio1, Bio7):** If the response is highest at intermediate
+  values, the cold-end decline encodes winter severity — irrelevant to Australia.
+
+
+
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(dismo)
+library(gbm)
+```
+
+
+
+
+## 1. Load data
+
+
+
+
+```{r}
+#| label: load
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+maxent_model <- readRDS(file.path(processed_dir, "selected_maxent_model.rds"))
+brt_model <- readRDS(file.path(processed_dir, "brt_model.rds"))
+env_M <- rast(file.path(processed_dir, "env_selected_M.tif"))
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+selected_vars <- readLines(file.path(processed_dir, "selected_variables.txt"))
+```
+
+
+
+
+## 2. Generate response curves and available environment distributions
+
+For each variable:
+- Histogram of available environmental conditions in the training region (M)
+- Histogram of conditions at occurrence points
+- MaxEnt and BRT response curves overlaid
+
+
+
+
+```{r}
+#| label: truncation-analysis
+#| fig-width: 14
+#| fig-height: 16
+
+# Extract environmental values
+occ_vals <- occ_env %>% dplyr::select(all_of(selected_vars))
+mean_occ_vals <- as.data.frame(t(colMeans(occ_vals, na.rm = TRUE)))
+
+# Available environment in M (sample for plotting)
+set.seed(42)
+bg_sample <- spatSample(env_M, size = 50000, method = "random",
+                        na.rm = TRUE, as.df = TRUE)
+
+# Generate response curves and truncation metrics
+trunc_results <- list()
+plot_data <- list()
+
+for (v in selected_vars) {
+  # Available range in training region
+  avail_range <- range(bg_sample[[v]], na.rm = TRUE)
+  occ_range <- range(occ_vals[[v]], na.rm = TRUE)
+
+  # Response curve across training range
+  var_seq <- seq(avail_range[1], avail_range[2], length.out = 200)
+  pred_df <- mean_occ_vals[rep(1, 200), ]
+  pred_df[[v]] <- var_seq
+
+  maxent_pred <- predict(maxent_model, pred_df, type = "cloglog")
+  brt_pred <- predict(brt_model, as.data.frame(pred_df),
+                      n.trees = brt_model$n.trees, type = "response")
+
+  # Truncation assessment: check if response is still elevated at range edges
+  # Check the last 10% of the range at each end
+  n_edge <- 20  # points in the edge zone
+  low_edge_maxent <- mean(maxent_pred[1:n_edge])
+  high_edge_maxent <- mean(maxent_pred[(200 - n_edge + 1):200])
+  low_edge_brt <- mean(brt_pred[1:n_edge])
+  high_edge_brt <- mean(brt_pred[(200 - n_edge + 1):200])
+  peak_maxent <- max(maxent_pred)
+  peak_brt <- max(brt_pred)
+
+  # Truncation = edge suitability > 50% of peak suitability
+  trunc_low_maxent <- low_edge_maxent > 0.5 * peak_maxent
+  trunc_high_maxent <- high_edge_maxent > 0.5 * peak_maxent
+  trunc_low_brt <- low_edge_brt > 0.5 * peak_brt
+  trunc_high_brt <- high_edge_brt > 0.5 * peak_brt
+
+  # Species occupancy at edges of available environment
+  q05 <- quantile(occ_vals[[v]], 0.05, na.rm = TRUE)
+  q95 <- quantile(occ_vals[[v]], 0.95, na.rm = TRUE)
+  avail_q05 <- quantile(bg_sample[[v]], 0.05, na.rm = TRUE)
+  avail_q95 <- quantile(bg_sample[[v]], 0.95, na.rm = TRUE)
+
+  # Does the species occur at the extremes of available environment?
+  occ_at_low_edge <- q05 <= avail_q05 + 0.05 * diff(avail_range)
+  occ_at_high_edge <- q95 >= avail_q95 - 0.05 * diff(avail_range)
+
+  trunc_results[[v]] <- tibble(
+    variable = v,
+    avail_min = avail_range[1],
+    avail_max = avail_range[2],
+    occ_q05 = as.numeric(q05),
+    occ_q95 = as.numeric(q95),
+    peak_maxent = peak_maxent,
+    peak_brt = peak_brt,
+    low_edge_maxent = round(low_edge_maxent, 3),
+    high_edge_maxent = round(high_edge_maxent, 3),
+    low_edge_brt = round(low_edge_brt, 3),
+    high_edge_brt = round(high_edge_brt, 3),
+    truncated_low = trunc_low_maxent | trunc_low_brt,
+    truncated_high = trunc_high_maxent | trunc_high_brt,
+    occ_at_low_extreme = occ_at_low_edge,
+    occ_at_high_extreme = occ_at_high_edge
+  )
+
+  # Store plot data
+  plot_data[[v]] <- list(
+    response = tibble(
+      value = var_seq,
+      MaxEnt = maxent_pred,
+      BRT = brt_pred
+    ),
+    available = bg_sample[[v]],
+    occurrences = occ_vals[[v]]
+  )
+}
+
+trunc_summary <- bind_rows(trunc_results)
+
+# Plot: response curves overlaid on environmental availability histograms
+n_vars <- length(selected_vars)
+ncol_plot <- 2
+nrow_plot <- ceiling(n_vars / ncol_plot)
+
+par(mfrow = c(nrow_plot, ncol_plot), mar = c(4, 4, 3, 4), oma = c(0, 0, 2, 0))
+
+for (v in selected_vars) {
+  pd <- plot_data[[v]]
+  tr <- trunc_summary %>% filter(variable == v)
+
+  # Histogram of available environment (background)
+  h <- hist(pd$available, breaks = 50, plot = FALSE)
+  # Scale histogram to fit with response curves
+  h_scale <- h$density / max(h$density) * 0.9
+
+  # Plot histogram
+  plot(h$mids, h_scale, type = "n",
+       xlim = range(pd$response$value),
+       ylim = c(0, 1.1),
+       xlab = v, ylab = "Suitability / Scaled Density",
+       main = v, cex.main = 1.2)
+
+  # Available environment as bars
+  rect(h$breaks[-length(h$breaks)], 0, h$breaks[-1], h_scale,
+       col = adjustcolor("grey80", alpha = 0.5), border = NA)
+
+  # Occurrence histogram overlay
+  h_occ <- hist(pd$occurrences, breaks = h$breaks, plot = FALSE)
+  h_occ_scale <- h_occ$density / max(h$density) * 0.9
+  rect(h_occ$breaks[-length(h_occ$breaks)], 0,
+       h_occ$breaks[-1], h_occ_scale,
+       col = adjustcolor("#D55E00", alpha = 0.3), border = NA)
+
+  # Response curves
+  lines(pd$response$value, pd$response$MaxEnt, col = "#0072B2", lwd = 2)
+  lines(pd$response$value, pd$response$BRT, col = "#D55E00", lwd = 2)
+
+  # Mark truncation
+  if (tr$truncated_low) {
+    abline(v = tr$avail_min, col = "red", lty = 2, lwd = 1.5)
+    text(tr$avail_min, 1.05, "TRUNCATED", col = "red", cex = 0.7, pos = 4)
+  }
+  if (tr$truncated_high) {
+    abline(v = tr$avail_max, col = "red", lty = 2, lwd = 1.5)
+    text(tr$avail_max, 1.05, "TRUNCATED", col = "red", cex = 0.7, pos = 2)
+  }
+
+  legend("topright", legend = c("MaxEnt", "BRT", "Available", "Occurrences"),
+         col = c("#0072B2", "#D55E00", "grey60", adjustcolor("#D55E00", 0.5)),
+         lty = c(1, 1, NA, NA), lwd = c(2, 2, NA, NA),
+         pch = c(NA, NA, 15, 15), pt.cex = 1.5,
+         cex = 0.7, bg = "white")
+}
+
+mtext(expression(italic("D. variabilis") ~ "— Niche Truncation Assessment"),
+      outer = TRUE, cex = 1.2)
+```
+
+```{r}
+#| label: save-truncation-plot
+
+png(file.path(figures_dir, "08c_niche_truncation.png"),
+    width = 14, height = 16, units = "in", res = 300)
+
+par(mfrow = c(nrow_plot, ncol_plot), mar = c(4, 4, 3, 4), oma = c(0, 0, 2, 0))
+
+for (v in selected_vars) {
+  pd <- plot_data[[v]]
+  tr <- trunc_summary %>% filter(variable == v)
+
+  h <- hist(pd$available, breaks = 50, plot = FALSE)
+  h_scale <- h$density / max(h$density) * 0.9
+
+  plot(h$mids, h_scale, type = "n",
+       xlim = range(pd$response$value),
+       ylim = c(0, 1.1),
+       xlab = v, ylab = "Suitability / Scaled Density",
+       main = v, cex.main = 1.2)
+
+  rect(h$breaks[-length(h$breaks)], 0, h$breaks[-1], h_scale,
+       col = adjustcolor("grey80", alpha = 0.5), border = NA)
+
+  h_occ <- hist(pd$occurrences, breaks = h$breaks, plot = FALSE)
+  h_occ_scale <- h_occ$density / max(h$density) * 0.9
+  rect(h_occ$breaks[-length(h_occ$breaks)], 0,
+       h_occ$breaks[-1], h_occ_scale,
+       col = adjustcolor("#D55E00", alpha = 0.3), border = NA)
+
+  lines(pd$response$value, pd$response$MaxEnt, col = "#0072B2", lwd = 2)
+  lines(pd$response$value, pd$response$BRT, col = "#D55E00", lwd = 2)
+
+  if (tr$truncated_low) {
+    abline(v = tr$avail_min, col = "red", lty = 2, lwd = 1.5)
+    text(tr$avail_min, 1.05, "TRUNCATED", col = "red", cex = 0.7, pos = 4)
+  }
+  if (tr$truncated_high) {
+    abline(v = tr$avail_max, col = "red", lty = 2, lwd = 1.5)
+    text(tr$avail_max, 1.05, "TRUNCATED", col = "red", cex = 0.7, pos = 2)
+  }
+
+  legend("topright", legend = c("MaxEnt", "BRT", "Available", "Occurrences"),
+         col = c("#0072B2", "#D55E00", "grey60", adjustcolor("#D55E00", 0.5)),
+         lty = c(1, 1, NA, NA), lwd = c(2, 2, NA, NA),
+         pch = c(NA, NA, 15, 15), pt.cex = 1.5,
+         cex = 0.7, bg = "white")
+}
+
+mtext(expression(italic("D. variabilis") ~ "— Niche Truncation Assessment"),
+      outer = TRUE, cex = 1.2)
+dev.off()
+```
+
+
+
+
+## 3. Truncation summary
+
+
+
+
+```{r}
+#| label: summary
+
+cat("======================================================\n")
+cat("  NICHE TRUNCATION SUMMARY\n")
+cat("======================================================\n\n")
+
+cat("Truncation detected at variable range boundaries:\n")
+trunc_summary %>%
+  dplyr::select(variable, truncated_low, truncated_high,
+         occ_at_low_extreme, occ_at_high_extreme,
+         low_edge_maxent, high_edge_maxent,
+         low_edge_brt, high_edge_brt) %>%
+  print(n = Inf)
+
+cat("\n--- Interpretation Guide ---\n")
+cat("truncated_low/high: Response curve > 50% of peak at range boundary\n")
+cat("occ_at_low/high_extreme: Species occurs within 5% of available range edge\n\n")
+
+# Flag key findings
+cat("--- Key Findings ---\n\n")
+
+for (v in selected_vars) {
+  tr <- trunc_summary %>% filter(variable == v)
+  if (tr$truncated_high & tr$occ_at_high_extreme) {
+    cat(sprintf("  %s: UPPER NICHE TRUNCATION — species occurs at warmest/highest\n", v))
+    cat("    available conditions. True upper limit cannot be estimated.\n\n")
+  }
+  if (tr$truncated_low & tr$occ_at_low_extreme) {
+    cat(sprintf("  %s: LOWER NICHE TRUNCATION — species occurs at coolest/lowest\n", v))
+    cat("    available conditions. True lower limit cannot be estimated.\n\n")
+  }
+  if (!tr$truncated_low & !tr$truncated_high) {
+    cat(sprintf("  %s: No truncation — both niche limits captured within training range.\n\n", v))
+  }
+}
+
+cat("Variables with upper truncation are problematic for Australian projection:\n")
+cat("- If the species tolerates warmer/drier conditions than observed in N. America,\n")
+cat("  the model underestimates Australian suitability.\n")
+cat("- CLIMEX physiological thresholds (Halliday & Sutherst 1990) can fill this gap:\n")
+cat("  optimal 28C, heat stress 35C, lethal 40C.\n")
+
+# Save
+write_csv(trunc_summary, file.path(processed_dir, "niche_truncation_summary.csv"))
+sprintf("Saved niche truncation assessment")
+```
+

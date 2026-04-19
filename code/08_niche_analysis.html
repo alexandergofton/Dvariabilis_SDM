@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Alexander W. Gofton">
-<meta name="dcterms.date" content="2026-04-07">
+<meta name="dcterms.date" content="2026-04-08">
 
 <title>Step 8: Niche Analysis</title>
 <style>
@@ -119,7 +119,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">April 7, 2026</p>
+      <p class="date">April 8, 2026</p>
     </div>
   </div>
   
@@ -499,14 +499,17 @@ Niche Similarity Test (Australia -&gt; Native Range):
 --- Key Findings ---
 
 Predicted suitable area in Australia:
-# A tibble: 5 × 3
-  model                suitable_area_km2 pct_australia
-  &lt;chr&gt;                            &lt;dbl&gt;         &lt;dbl&gt;
-1 MaxEnt                         217704.           2.8
-2 MaxEnt (MESS-masked)           217704.           2.8
-3 BRT                            223710.           2.9
-4 BRT (MESS-masked)              223614.           2.9
-5 Ensemble                       225804.           2.9
+# A tibble: 8 × 3
+  model                              suitable_area_km2 pct_australia
+  &lt;chr&gt;                                          &lt;dbl&gt;         &lt;dbl&gt;
+1 MaxEnt (correlative)                          217704           2.8
+2 MaxEnt (MESS-masked)                          217704           2.8
+3 BRT (correlative)                             223710           2.9
+4 BRT (MESS-masked)                             223614           2.9
+5 CLIMEX (EI &gt; 10, process-based)               243962           3.2
+6 Ensemble ≥1 model                            1994660          25.8
+7 Ensemble ≥2 models (recommended)              244105           3.2
+8 Ensemble = 3 models (conservative)            189133           2.4
 
 --- Conclusion ---
 The niche analysis and model projections together indicate whether

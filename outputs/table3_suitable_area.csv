@@ -1,6 +1,9 @@
 model,suitable_area_km2,pct_australia
-MaxEnt,217704.19914180433,2.8
-MaxEnt (MESS-masked),217704.19914180433,2.8
-BRT,223710.1327839589,2.9
-BRT (MESS-masked),223614.3597673267,2.9
-Ensemble,225803.66693163753,2.9
+MaxEnt (correlative),217704,2.8
+MaxEnt (MESS-masked),217704,2.8
+BRT (correlative),223710,2.9
+BRT (MESS-masked),223614,2.9
+"CLIMEX (EI > 10, process-based)",243962,3.2
+Ensemble ≥1 model,1994660,25.8
+Ensemble ≥2 models (recommended),244105,3.2
+Ensemble = 3 models (conservative),189133,2.4

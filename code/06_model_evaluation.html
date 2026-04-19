@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Alexander W. Gofton">
-<meta name="dcterms.date" content="2026-04-07">
+<meta name="dcterms.date" content="2026-04-08">
 
 <title>Step 6: Model Evaluation</title>
 <style>
@@ -92,7 +92,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#variable-importance-comparison" id="toc-variable-importance-comparison" class="nav-link" data-scroll-target="#variable-importance-comparison">6. Variable importance comparison</a></li>
   <li><a href="#model-agreement-assessment" id="toc-model-agreement-assessment" class="nav-link" data-scroll-target="#model-agreement-assessment">7. Model agreement assessment</a></li>
   <li><a href="#model-comparison-summary" id="toc-model-comparison-summary" class="nav-link" data-scroll-target="#model-comparison-summary">8. Model comparison summary</a></li>
-  <li><a href="#save-evaluation-outputs" id="toc-save-evaluation-outputs" class="nav-link" data-scroll-target="#save-evaluation-outputs">9. Save evaluation outputs</a></li>
+  <li><a href="#climex-evaluation-via-worldclim-bridge" id="toc-climex-evaluation-via-worldclim-bridge" class="nav-link" data-scroll-target="#climex-evaluation-via-worldclim-bridge">9. CLIMEX evaluation via WorldClim bridge</a></li>
+  <li><a href="#ensemble-weights-skill-above-random-auc" id="toc-ensemble-weights-skill-above-random-auc" class="nav-link" data-scroll-target="#ensemble-weights-skill-above-random-auc">10. Ensemble weights — skill-above-random AUC</a></li>
+  <li><a href="#save-evaluation-outputs" id="toc-save-evaluation-outputs" class="nav-link" data-scroll-target="#save-evaluation-outputs">11. Save evaluation outputs</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="06_model_evaluation.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li></ul></div></nav>
 </div>
@@ -118,7 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">April 7, 2026</p>
+      <p class="date">April 8, 2026</p>
     </div>
   </div>
   
@@ -146,7 +148,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dismo)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gbm)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ENMeval)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ecospat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ecospat)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mgcv)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="load-models-and-data" class="level2">
@@ -448,33 +451,220 @@ Interpretation:
 </div>
 </div>
 </section>
-<section id="save-evaluation-outputs" class="level2">
-<h2 class="anchored" data-anchor-id="save-evaluation-outputs">9. Save evaluation outputs</h2>
+<section id="climex-evaluation-via-worldclim-bridge" class="level2">
+<h2 class="anchored" data-anchor-id="climex-evaluation-via-worldclim-bridge">9. CLIMEX evaluation via WorldClim bridge</h2>
+<p>CLIMEX is a process-based model — it has no spatial block cross-validation AUC because it was not statistically trained. To compute a comparable AUC for ensemble weighting, we use a WorldClim-bridge approach:</p>
+<ol type="1">
+<li>Fit a GAM predicting CLIMEX EI from derived WorldClim summaries across Australia (the relationship is near-deterministic: R² expected &gt; 0.95)</li>
+<li>Apply the GAM to native-range (M extent) WorldClim data → estimate native-range EI</li>
+<li>Extract EI at native occurrence and background points → compute presence-background AUC</li>
+</ol>
+<p>This is the same protocol used for MaxEnt and BRT, ensuring comparability.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Thresholds</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>threshold_data <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">maxent =</span> <span class="fu">list</span>(</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">maxss =</span> maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold,</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">p10 =</span> <span class="fu">as.numeric</span>(maxent_thresh<span class="sc">$</span>p10),</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tss =</span> maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>tss</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">brt =</span> <span class="fu">list</span>(</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">maxss =</span> brt_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold,</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">p10 =</span> <span class="fu">as.numeric</span>(brt_thresh<span class="sc">$</span>p10),</span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">tss =</span> brt_thresh<span class="sc">$</span>maxss<span class="sc">$</span>tss</span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(threshold_data, <span class="fu">file.path</span>(processed_dir, <span class="st">"model_thresholds.rds"</span>))</span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Primary threshold for downstream use (MaxEnt MaxSS)</span></span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(</span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.character</span>(maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold),</span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(processed_dir, <span class="st">"primary_threshold.txt"</span>)</span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Saved model evaluation results and thresholds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mgcv)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Australian extent and WorldClim directory</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>aus_ext <span class="ot">&lt;-</span> <span class="fu">ext</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_aus.tif"</span>)))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>M_ext   <span class="ot">&lt;-</span> <span class="fu">ext</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"env_selected_M.tif"</span>)))</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>wc_dir  <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_dir, <span class="st">"climatic_data"</span>, <span class="st">"wc2.1_2.5m"</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Load Australian monthly WorldClim</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>tmin_aus_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_tmin_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), aus_ext)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>tmax_aus_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_tmax_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), aus_ext)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>prec_aus_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_prec_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), aus_ext)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>tmean_aus_m <span class="ot">&lt;-</span> (tmin_aus_m <span class="sc">+</span> tmax_aus_m) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Derive 4 climate summary predictors for GAM</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co"># These capture the dominant axes of CLIMEX EI variation</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>tmean_ann_aus <span class="ot">&lt;-</span> <span class="fu">mean</span>(tmean_aus_m)                     <span class="co"># annual mean temperature</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>prec_ann_aus  <span class="ot">&lt;-</span> <span class="fu">sum</span>(prec_aus_m)                       <span class="co"># annual total precipitation</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>tmean_seas_aus <span class="ot">&lt;-</span> <span class="fu">app</span>(tmean_aus_m, sd)                 <span class="co"># temperature seasonality (SD)</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>prec_seas_aus  <span class="ot">&lt;-</span> <span class="fu">app</span>(prec_aus_m, <span class="cf">function</span>(x) {        <span class="co"># precipitation seasonality (CV)</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.na</span>(m) <span class="sc">||</span> m <span class="sc">==</span> <span class="dv">0</span>) <span class="cn">NA_real_</span> <span class="cf">else</span> <span class="fu">sd</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> m</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Load CLIMEX EI for Australia (raw, 0-100 scale for GAM training)</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>climex_EI_raw <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(processed_dir, <span class="st">"climex_EI_aus.tif"</span>))</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Build training data frame (sample up to 50k cells for speed)</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>train_stack <span class="ot">&lt;-</span> <span class="fu">c</span>(tmean_ann_aus, prec_ann_aus, tmean_seas_aus, prec_seas_aus, climex_EI_raw)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(train_stack) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"tmean_ann"</span>, <span class="st">"prec_ann"</span>, <span class="st">"tmean_seas"</span>, <span class="st">"prec_seas"</span>, <span class="st">"EI"</span>)</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>train_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(train_stack, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(train_df) <span class="sc">&gt;</span> <span class="dv">50000</span>) train_df <span class="ot">&lt;-</span> train_df[<span class="fu">sample</span>(<span class="fu">nrow</span>(train_df), <span class="dv">50000</span>), ]</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"GAM training data: %d cells</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">nrow</span>(train_df)))</span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit GAM: EI ~ smooth functions of climate summaries</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>climex_bridge_gam <span class="ot">&lt;-</span> <span class="fu">gam</span>(</span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>  EI <span class="sc">~</span> <span class="fu">s</span>(tmean_ann, <span class="at">k =</span> <span class="dv">10</span>) <span class="sc">+</span> <span class="fu">s</span>(prec_ann, <span class="at">k =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>       <span class="fu">s</span>(tmean_seas, <span class="at">k =</span> <span class="dv">8</span>) <span class="sc">+</span> <span class="fu">s</span>(prec_seas, <span class="at">k =</span> <span class="dv">8</span>),</span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> train_df,</span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>gam_r2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(climex_bridge_gam)<span class="sc">$</span>r.sq</span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"CLIMEX-WorldClim GAM R²: %.4f</span><span class="sc">\n</span><span class="st">"</span>, gam_r2))</span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (gam_r2 <span class="sc">&lt;</span> <span class="fl">0.90</span>) {</span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">warning</span>(<span class="st">"GAM R² &lt; 0.90 — WorldClim bridge may be unreliable. CLIMEX weight should be used with caution."</span>)</span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply GAM to native range (M extent) monthly WorldClim</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>tmin_M_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_tmin_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), M_ext)</span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>tmax_M_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_tmax_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), M_ext)</span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>prec_M_m <span class="ot">&lt;-</span> <span class="fu">crop</span>(<span class="fu">rast</span>(<span class="fu">file.path</span>(wc_dir, <span class="fu">sprintf</span>(<span class="st">"wc2.1_2.5m_prec_%02d.tif"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>))), M_ext)</span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>tmean_M_m <span class="ot">&lt;-</span> (tmin_M_m <span class="sc">+</span> tmax_M_m) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>tmean_ann_M <span class="ot">&lt;-</span> <span class="fu">mean</span>(tmean_M_m)</span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>prec_ann_M  <span class="ot">&lt;-</span> <span class="fu">sum</span>(prec_M_m)</span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>tmean_seas_M <span class="ot">&lt;-</span> <span class="fu">app</span>(tmean_M_m, sd)</span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>prec_seas_M  <span class="ot">&lt;-</span> <span class="fu">app</span>(prec_M_m, <span class="cf">function</span>(x) {</span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.na</span>(m) <span class="sc">||</span> m <span class="sc">==</span> <span class="dv">0</span>) <span class="cn">NA_real_</span> <span class="cf">else</span> <span class="fu">sd</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> m</span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>pred_stack_M <span class="ot">&lt;-</span> <span class="fu">c</span>(tmean_ann_M, prec_ann_M, tmean_seas_M, prec_seas_M)</span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(pred_stack_M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"tmean_ann"</span>, <span class="st">"prec_ann"</span>, <span class="st">"tmean_seas"</span>, <span class="st">"prec_seas"</span>)</span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict EI for the native range</span></span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a>pred_df_M <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(pred_stack_M, <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a>non_na    <span class="ot">&lt;-</span> <span class="fu">complete.cases</span>(pred_df_M[, <span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>])</span>
+<span id="cb17-71"><a href="#cb17-71" aria-hidden="true" tabindex="-1"></a>pred_df_M<span class="sc">$</span>EI_pred <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
+<span id="cb17-72"><a href="#cb17-72" aria-hidden="true" tabindex="-1"></a>pred_df_M<span class="sc">$</span>EI_pred[non_na] <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb17-73"><a href="#cb17-73" aria-hidden="true" tabindex="-1"></a>  climex_bridge_gam,</span>
+<span id="cb17-74"><a href="#cb17-74" aria-hidden="true" tabindex="-1"></a>  <span class="at">newdata =</span> pred_df_M[non_na, <span class="fu">c</span>(<span class="st">"tmean_ann"</span>, <span class="st">"prec_ann"</span>, <span class="st">"tmean_seas"</span>, <span class="st">"prec_seas"</span>)]</span>
+<span id="cb17-75"><a href="#cb17-75" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-76"><a href="#cb17-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-77"><a href="#cb17-77" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert back to raster (normalise to 0-1 for AUC)</span></span>
+<span id="cb17-78"><a href="#cb17-78" aria-hidden="true" tabindex="-1"></a>climex_EI_M_rast <span class="ot">&lt;-</span> <span class="fu">rast</span>(pred_stack_M[[<span class="dv">1</span>]])  <span class="co"># template</span></span>
+<span id="cb17-79"><a href="#cb17-79" aria-hidden="true" tabindex="-1"></a><span class="fu">values</span>(climex_EI_M_rast) <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="dv">0</span>, <span class="fu">pmin</span>(<span class="dv">100</span>, pred_df_M<span class="sc">$</span>EI_pred))</span>
+<span id="cb17-80"><a href="#cb17-80" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(climex_EI_M_rast) <span class="ot">&lt;-</span> <span class="st">"climex_EI_native"</span></span>
+<span id="cb17-81"><a href="#cb17-81" aria-hidden="true" tabindex="-1"></a>climex_EI_M_norm <span class="ot">&lt;-</span> climex_EI_M_rast <span class="sc">/</span> <span class="dv">100</span></span>
+<span id="cb17-82"><a href="#cb17-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-83"><a href="#cb17-83" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract at occurrence and background points</span></span>
+<span id="cb17-84"><a href="#cb17-84" aria-hidden="true" tabindex="-1"></a>occ_coords_df <span class="ot">&lt;-</span> occ_env <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(decimalLongitude, decimalLatitude)</span>
+<span id="cb17-85"><a href="#cb17-85" aria-hidden="true" tabindex="-1"></a>bg_coords_df  <span class="ot">&lt;-</span> bg_env  <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(lon, lat) <span class="sc">%&gt;%</span></span>
+<span id="cb17-86"><a href="#cb17-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">decimalLongitude =</span> lon, <span class="at">decimalLatitude =</span> lat)</span>
+<span id="cb17-87"><a href="#cb17-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-88"><a href="#cb17-88" aria-hidden="true" tabindex="-1"></a>climex_occ_preds <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(climex_EI_M_norm, occ_coords_df)[, <span class="dv">2</span>]</span>
+<span id="cb17-89"><a href="#cb17-89" aria-hidden="true" tabindex="-1"></a>climex_bg_preds  <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">extract</span>(climex_EI_M_norm, bg_coords_df)[, <span class="dv">2</span>]</span>
+<span id="cb17-90"><a href="#cb17-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-91"><a href="#cb17-91" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove NAs (points outside raster extent)</span></span>
+<span id="cb17-92"><a href="#cb17-92" aria-hidden="true" tabindex="-1"></a>valid <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(climex_occ_preds)</span>
+<span id="cb17-93"><a href="#cb17-93" aria-hidden="true" tabindex="-1"></a>climex_occ_preds <span class="ot">&lt;-</span> climex_occ_preds[valid]</span>
+<span id="cb17-94"><a href="#cb17-94" aria-hidden="true" tabindex="-1"></a>valid_bg <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(climex_bg_preds)</span>
+<span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a>climex_bg_preds <span class="ot">&lt;-</span> climex_bg_preds[valid_bg]</span>
+<span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a>climex_auc_val <span class="ot">&lt;-</span> <span class="fu">calc_auc</span>(climex_occ_preds, climex_bg_preds)</span>
+<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"CLIMEX presence-background AUC (native range, via WorldClim bridge): %.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>            climex_auc_val))</span>
+<span id="cb17-100"><a href="#cb17-100" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  (Based on %d occurrence points and %d background points with valid EI)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-101"><a href="#cb17-101" aria-hidden="true" tabindex="-1"></a>            <span class="fu">length</span>(climex_occ_preds), <span class="fu">length</span>(climex_bg_preds)))</span>
+<span id="cb17-102"><a href="#cb17-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-103"><a href="#cb17-103" aria-hidden="true" tabindex="-1"></a><span class="co"># Save the bridged native-range EI raster for inspection</span></span>
+<span id="cb17-104"><a href="#cb17-104" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(climex_EI_M_norm,</span>
+<span id="cb17-105"><a href="#cb17-105" aria-hidden="true" tabindex="-1"></a>            <span class="fu">file.path</span>(processed_dir, <span class="st">"climex_EI_native_bridged.tif"</span>),</span>
+<span id="cb17-106"><a href="#cb17-106" aria-hidden="true" tabindex="-1"></a>            <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Saved model evaluation results and thresholds"</code></pre>
+<pre><code>GAM training data: 50000 cells
+CLIMEX-WorldClim GAM R²: 0.8265
+CLIMEX presence-background AUC (native range, via WorldClim bridge): 0.684
+  (Based on 4580 occurrence points and 9955 background points with valid EI)</code></pre>
+</div>
+</div>
+</section>
+<section id="ensemble-weights-skill-above-random-auc" class="level2">
+<h2 class="anchored" data-anchor-id="ensemble-weights-skill-above-random-auc">10. Ensemble weights — skill-above-random AUC</h2>
+<p>Weights are computed as skill above random (AUC − 0.5), normalised to sum to 1. This penalises models with poor spatial transferability (AUC near 0.5) and rewards those that generalise well. MaxEnt’s spatial block CV AUC is used; for BRT the CV correlation is converted (note: BRT reports CV correlation not AUC, so we use the training AUC as a fallback after confirming the comparison-table AUC).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># AUC values</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>maxent_auc_val  <span class="ot">&lt;-</span> maxent_metadata<span class="sc">$</span>auc_val     <span class="co"># spatial block CV AUC (from ENMeval)</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># BRT: use validation AUC from comparison table (row 2 = "Validation AUC (CV)")</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>brt_auc_val_str <span class="ot">&lt;-</span> comparison <span class="sc">%&gt;%</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Metric <span class="sc">==</span> <span class="st">"Validation AUC (CV)"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(BRT)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>brt_auc_val <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(brt_auc_val_str)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co"># CLIMEX: presence-background AUC computed above</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co"># climex_auc_val already in environment</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"--- AUC values for ensemble weighting ---</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"MaxEnt validation AUC (spatial block CV): %.3f"</span>, maxent_auc_val)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"BRT validation AUC: %.3f"</span>, brt_auc_val)</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"CLIMEX AUC (WorldClim bridge): %.3f"</span>, climex_auc_val)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Skill above random (clamp to 0 — no negative weights)</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>skills <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">MaxEnt =</span> <span class="fu">max</span>(<span class="dv">0</span>, maxent_auc_val <span class="sc">-</span> <span class="fl">0.5</span>),</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">BRT    =</span> <span class="fu">max</span>(<span class="dv">0</span>, brt_auc_val    <span class="sc">-</span> <span class="fl">0.5</span>),</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">CLIMEX =</span> <span class="fu">max</span>(<span class="dv">0</span>, climex_auc_val <span class="sc">-</span> <span class="fl">0.5</span>)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>ensemble_weights <span class="ot">&lt;-</span> skills <span class="sc">/</span> <span class="fu">sum</span>(skills)</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">=== ENSEMBLE WEIGHTS (skill-above-random AUC) ===</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>weights_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">model   =</span> <span class="fu">names</span>(ensemble_weights),</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">auc_val =</span> <span class="fu">round</span>(skills <span class="sc">+</span> <span class="fl">0.5</span>, <span class="dv">3</span>),</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">skill   =</span> <span class="fu">round</span>(skills, <span class="dv">3</span>),</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight  =</span> <span class="fu">round</span>(ensemble_weights, <span class="dv">3</span>)</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(weights_df)</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Weight sum: %.4f (should be 1.000)</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">sum</span>(ensemble_weights)))</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Save</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(ensemble_weights,</span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>        <span class="fu">file.path</span>(processed_dir, <span class="st">"ensemble_weights.rds"</span>))</span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(weights_df,</span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>          <span class="fu">file.path</span>(processed_dir, <span class="st">"ensemble_weights.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>--- AUC values for ensemble weighting ---
+[1] "MaxEnt validation AUC (spatial block CV): 0.824"
+[1] "BRT validation AUC: 0.591"
+[1] "CLIMEX AUC (WorldClim bridge): 0.684"
+
+=== ENSEMBLE WEIGHTS (skill-above-random AUC) ===
+# A tibble: 3 × 4
+  model  auc_val skill weight
+  &lt;chr&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+1 MaxEnt   0.824 0.324  0.541
+2 BRT      0.591 0.091  0.152
+3 CLIMEX   0.684 0.184  0.307
+
+Weight sum: 1.0000 (should be 1.000)</code></pre>
+</div>
+</div>
+</section>
+<section id="save-evaluation-outputs" class="level2">
+<h2 class="anchored" data-anchor-id="save-evaluation-outputs">11. Save evaluation outputs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Thresholds</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>threshold_data <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">maxent =</span> <span class="fu">list</span>(</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">maxss =</span> maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">p10 =</span> <span class="fu">as.numeric</span>(maxent_thresh<span class="sc">$</span>p10),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tss =</span> maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>tss</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">brt =</span> <span class="fu">list</span>(</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">maxss =</span> brt_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold,</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">p10 =</span> <span class="fu">as.numeric</span>(brt_thresh<span class="sc">$</span>p10),</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">tss =</span> brt_thresh<span class="sc">$</span>maxss<span class="sc">$</span>tss</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(threshold_data, <span class="fu">file.path</span>(processed_dir, <span class="st">"model_thresholds.rds"</span>))</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Primary threshold for downstream use (MaxEnt MaxSS)</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.character</span>(maxent_thresh<span class="sc">$</span>maxss<span class="sc">$</span>threshold),</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(processed_dir, <span class="st">"primary_threshold.txt"</span>)</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Saved model evaluation results, thresholds, and ensemble weights"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Saved model evaluation results, thresholds, and ensemble weights"</code></pre>
 </div>
 </div>
 </section>

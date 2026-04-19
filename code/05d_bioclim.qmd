@@ -221,38 +221,58 @@ names(br_df)[3] <- "suitability"
 p_bc <- ggplot() +
   geom_raster(data = bc_df, aes(x = x, y = y, fill = bioclim_suitability)) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  scale_fill_viridis_c(name = "Suitability", option = "viridis",
-                       limits = c(0, 1), na.value = "grey95") +
-  labs(title = "BIOCLIM (Set B)",
-       subtitle = "Zero = outside occurrence climate range") +
+  scale_fill_viridis_c(
+    name = "Suitability",
+    option = "viridis",
+    limits = c(0, 1),
+    na.value = "grey95",
+    trans = "sqrt"
+  ) +
+  labs(
+    title = "BIOCLIM (Set B)",
+    subtitle = "Zero = outside occurrence climate range"
+  ) +
   theme_minimal(base_size = 10) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10))
 
 p_me <- ggplot() +
   geom_raster(data = me_df, aes(x = x, y = y, fill = suitability)) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  scale_fill_viridis_c(name = "Suitability", option = "viridis",
-                       limits = c(0, 1), na.value = "grey95") +
-  labs(title = "MaxEnt (Set A)",
-       subtitle = "56.4% suitable") +
+  scale_fill_viridis_c(
+    name = "Suitability",
+    option = "viridis",
+    limits = c(0, 1),
+    na.value = "grey95",
+    trans = "sqrt"
+  ) +
+  labs(title = "MaxEnt (Set A)", subtitle = "56.4% suitable") +
   theme_minimal(base_size = 10) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10))
 
 p_br <- ggplot() +
   geom_raster(data = br_df, aes(x = x, y = y, fill = suitability)) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  scale_fill_viridis_c(name = "Suitability", option = "viridis",
-                       limits = c(0, 1), na.value = "grey95") +
-  labs(title = "BRT (Set A)",
-       subtitle = "8.4% suitable") +
+  scale_fill_viridis_c(
+    name = "Suitability",
+    option = "viridis",
+    limits = c(0, 1),
+    na.value = "grey95",
+    trans = "sqrt"
+  ) +
+  labs(title = "BRT (Set A)", subtitle = "8.4% suitable") +
   theme_minimal(base_size = 10) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10))
 
 p_combined <- p_bc + p_me + p_br + plot_layout(ncol = 2)
 print(p_combined)
 
-ggsave(file.path(figures_dir, "05d_bioclim_comparison.png"),
-       p_combined, width = 14, height = 10, dpi = 300)
+ggsave(
+  file.path(figures_dir, "05d_bioclim_comparison.png"),
+  p_combined,
+  width = 14,
+  height = 10,
+  dpi = 300
+)
 ```
 
 ## 8. Save outputs

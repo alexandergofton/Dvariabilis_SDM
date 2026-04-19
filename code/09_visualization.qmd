@@ -63,11 +63,13 @@ brt_metadata <- readRDS(file.path(processed_dir, "brt_model_metadata.rds"))
 thresholds <- readRDS(file.path(processed_dir, "model_thresholds.rds"))
 
 # Predictions
-pred_aus_maxent <- rast(file.path(processed_dir, "pred_aus_maxent.tif"))
-pred_aus_brt <- rast(file.path(processed_dir, "pred_aus_brt.tif"))
-pred_aus_ensemble <- rast(file.path(processed_dir, "pred_aus_ensemble.tif"))
-pred_M_maxent <- rast(file.path(processed_dir, "pred_M_maxent.tif"))
-mess_aus <- rast(file.path(processed_dir, "mess_australia.tif"))
+pred_aus_maxent    <- rast(file.path(processed_dir, "pred_aus_maxent.tif"))
+pred_aus_brt       <- rast(file.path(processed_dir, "pred_aus_brt.tif"))
+pred_aus_climex    <- rast(file.path(processed_dir, "climex_EI_norm_aus.tif"))
+pred_aus_ensemble  <- rast(file.path(processed_dir, "pred_aus_ensemble.tif"))
+committee_vote_aus <- rast(file.path(processed_dir, "committee_vote_aus.tif"))
+pred_M_maxent      <- rast(file.path(processed_dir, "pred_M_maxent.tif"))
+mess_aus           <- rast(file.path(processed_dir, "mess_australia.tif"))
 
 # Niche results
 niche_results <- readRDS(file.path(processed_dir, "niche_analysis_results.rds"))
@@ -121,7 +123,7 @@ p_aus <- ggplot() +
   geom_raster(data = aus_maxent_df, aes(x = x, y = y, fill = ensemble_suitability)) +
   geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.3) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.5) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability") +
+  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability", trans = "sqrt") +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
   labs(title = "B) Australia — Ensemble Predicted Suitability") +
   theme_minimal(base_size = 10) +
@@ -140,42 +142,69 @@ ggsave(file.path(figures_dir, "fig1_study_design.png"),
 fig1
 ```
 
-## 3. Figure 2 — Model comparison (MaxEnt vs BRT suitability)
+## 3. Figure 2 — Three-model comparison (MaxEnt, BRT, CLIMEX, ensemble)
 
 ```{r}
 #| label: fig2
 #| fig-width: 14
-#| fig-height: 12
+#| fig-height: 18
 
-maxent_df <- as.data.frame(pred_aus_maxent, xy = TRUE) %>% filter(!is.na(maxent_suitability))
-brt_df <- as.data.frame(pred_aus_brt, xy = TRUE) %>% filter(!is.na(brt_suitability))
-mess_df <- as.data.frame(mess_aus, xy = TRUE) %>% filter(!is.na(mess))
+maxent_df   <- as.data.frame(pred_aus_maxent,   xy = TRUE) %>% filter(!is.na(maxent_suitability))
+brt_df      <- as.data.frame(pred_aus_brt,      xy = TRUE) %>% filter(!is.na(brt_suitability))
+climex_df   <- as.data.frame(pred_aus_climex,   xy = TRUE) %>% filter(!is.na(climex_suitability))
+ensemble_df <- as.data.frame(pred_aus_ensemble, xy = TRUE) %>% filter(!is.na(ensemble_suitability))
+mess_df     <- as.data.frame(mess_aus,          xy = TRUE) %>% filter(!is.na(mess))
+vote_df     <- as.data.frame(committee_vote_aus, xy = TRUE) %>%
+  filter(!is.na(models_agreeing)) %>%
+  mutate(models_agreeing = factor(models_agreeing, levels = 0:3,
+                                  labels = c("0 — None", "1 — One model",
+                                             "2 — Two models", "3 — All three")))
 
 map_theme <- theme_minimal(base_size = 10) +
   theme(panel.grid = element_blank(),
         plot.title = element_text(face = "bold", size = 11),
-        legend.position = "bottom", legend.key.width = unit(2, "cm"))
+        legend.position = "bottom", legend.key.width = unit(1.8, "cm"))
 
 p_maxent <- ggplot() +
   geom_raster(data = maxent_df, aes(x = x, y = y, fill = maxent_suitability)) +
   geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.2) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability") +
+  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability", trans = "sqrt") +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
-  labs(title = "A) MaxEnt") + map_theme
+  labs(title = "A) MaxEnt (correlative)") + map_theme
 
 p_brt <- ggplot() +
   geom_raster(data = brt_df, aes(x = x, y = y, fill = brt_suitability)) +
   geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.2) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability") +
+  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability", trans = "sqrt") +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
-  labs(title = "B) BRT") + map_theme
+  labs(title = "B) BRT (correlative)") + map_theme
+
+p_climex <- ggplot() +
+  geom_raster(data = climex_df, aes(x = x, y = y, fill = climex_suitability)) +
+  geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.2) +
+  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "EI / 100", trans = "sqrt") +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  labs(title = "C) CLIMEX EI (process-based, no MESS limitation)") + map_theme
 
 p_ensemble <- ggplot() +
-  geom_raster(data = aus_maxent_df, aes(x = x, y = y, fill = ensemble_suitability)) +
+  geom_raster(data = ensemble_df, aes(x = x, y = y, fill = ensemble_suitability)) +
   geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.2) +
-  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability") +
+  scale_fill_viridis_c(option = "inferno", limits = c(0, 1), name = "Suitability", trans = "sqrt") +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
-  labs(title = "C) Ensemble (MaxEnt + BRT mean)") + map_theme
+  labs(title = "D) Ensemble mean (MaxEnt + BRT + CLIMEX)") + map_theme
+
+p_vote <- ggplot() +
+  geom_raster(data = vote_df, aes(x = x, y = y, fill = models_agreeing)) +
+  geom_sf(data = states, fill = NA, colour = "grey50", linewidth = 0.2) +
+  scale_fill_manual(
+    values = c("0 — None"       = "grey92",
+               "1 — One model"  = "#FEE391",
+               "2 — Two models" = "#EC7014",
+               "3 — All three"  = "#7F0000"),
+    name = "Models agreeing"
+  ) +
+  coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
+  labs(title = "E) Committee vote — model agreement") + map_theme
 
 p_mess <- ggplot() +
   geom_raster(data = mess_df, aes(x = x, y = y, fill = mess)) +
@@ -183,49 +212,76 @@ p_mess <- ggplot() +
   scale_fill_gradient2(low = "#D55E00", mid = "white", high = "#0072B2",
                        midpoint = 0, name = "MESS") +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
-  labs(title = "D) MESS — Environmental Similarity",
-       subtitle = "Red = novel climate | Blue = analogous") +
-  map_theme
+  labs(title = "F) MESS — Environmental Similarity",
+       subtitle = "Red = novel climate | Blue = analogous") + map_theme
 
-fig2 <- (p_maxent + p_brt) / (p_ensemble + p_mess) +
+fig2 <- (p_maxent + p_brt) / (p_climex + p_ensemble) / (p_vote + p_mess) +
   plot_annotation(
     title = expression(italic("Dermacentor variabilis") ~
-                       "— Projected Climatic Suitability in Australia"),
+                       "— Three-Model Projected Climatic Suitability in Australia"),
     theme = theme(plot.title = element_text(size = 14, face = "bold"))
   )
 
 ggsave(file.path(figures_dir, "fig2_australia_suitability.png"),
-       fig2, width = 14, height = 12, dpi = 300)
+       fig2, width = 14, height = 18, dpi = 300)
 fig2
 ```
 
-## 4. Figure 3 — Binary suitability with MESS mask
+## 4. Figure 3 — Three-model consensus binary map
+
+This map combines information from all three models into a consensus classification,
+distinguishing between regions predicted suitable by: all three models (highest
+confidence), correlative models only (within analogue climate), CLIMEX only (in
+novel climate — where correlative models cannot reliably predict), and no models.
 
 ```{r}
 #| label: fig3
 #| fig-width: 10
 #| fig-height: 8
 
-# Create binary ensemble with MESS mask
-ensemble_thresh <- mean(thresholds$maxent$maxss, thresholds$brt$maxss)
-ensemble_binary <- pred_aus_ensemble >= ensemble_thresh
-mess_mask <- mess_aus >= 0
+mess_mask <- mess_aus >= 0  # 1 = analogous climate, 0 = novel
+thresholds <- readRDS(file.path(processed_dir, "model_thresholds.rds"))
 
-# Create a categorical raster: 0 = unsuitable, 1 = suitable (analogous), 2 = novel climate
-suitability_cat <- ensemble_binary
-suitability_cat[mess_mask == 0 & ensemble_binary == 1] <- 2   # Suitable but extrapolated
-suitability_cat[mess_mask == 0 & ensemble_binary == 0] <- 3   # Unsuitable and extrapolated
+# Reconstruct binary votes (already saved but recompute for clarity)
+maxent_vote_09 <- ifel(pred_aus_maxent >= thresholds$maxent$maxss, 1, 0)
+brt_vote_09    <- ifel(pred_aus_brt    >= thresholds$brt$maxss,    1, 0)
+climex_vote_09 <- ifel(pred_aus_climex >= 0.10,                    1, 0)
+vote_sum_09    <- maxent_vote_09 + brt_vote_09 + climex_vote_09
 
-cat_df <- as.data.frame(suitability_cat, xy = TRUE)
-names(cat_df)[3] <- "category"
-cat_df <- cat_df %>%
-  filter(!is.na(category)) %>%
-  mutate(category = factor(category,
-    levels = c(0, 1, 2, 3),
-    labels = c("Unsuitable (analogous climate)",
-               "Suitable (analogous climate)",
-               "Suitable (novel climate — uncertain)",
-               "Unsuitable (novel climate)")
+# Build a categorical map with 6 meaningful classes
+# Priority: all-three > two-with-analogous > CLIMEX-in-novel > one-correlative > unsuitable
+consensus <- vote_sum_09  # temp; overwrite with classification
+consensus[] <- 0  # default: unsuitable
+
+# Class 1: All three agree suitable (high confidence)
+consensus[vote_sum_09 == 3] <- 5
+
+# Class 2: ≥2 models agree, analogous climate (good confidence)
+consensus[vote_sum_09 == 2 & mess_mask == 1] <- 4
+
+# Class 3: ≥2 models agree, novel climate (moderate — includes CLIMEX support)
+consensus[vote_sum_09 == 2 & mess_mask == 0] <- 3
+
+# Class 4: CLIMEX only, novel climate (CLIMEX-only extrapolation zone)
+consensus[climex_vote_09 == 1 & (maxent_vote_09 + brt_vote_09) == 0 & mess_mask == 0] <- 2
+
+# Class 5: Correlative models only (1 model, analogous climate)
+consensus[(maxent_vote_09 == 1 | brt_vote_09 == 1) & climex_vote_09 == 0 &
+            vote_sum_09 == 1 & mess_mask == 1] <- 1
+
+names(consensus) <- "lyr.1"
+cat_df <- as.data.frame(consensus, xy = TRUE) %>%
+  filter(!is.na(lyr.1)) %>%
+  mutate(category = factor(lyr.1,
+    levels = 0:5,
+    labels = c(
+      "0 — Not suitable (any model)",
+      "1 — Correlative only, analogous climate",
+      "2 — CLIMEX only, novel climate",
+      "3 — ≥2 models agree, novel climate",
+      "4 — ≥2 models agree, analogous climate",
+      "5 — All 3 models agree"
+    )
   ))
 
 fig3 <- ggplot() +
@@ -234,27 +290,33 @@ fig3 <- ggplot() +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.5) +
   scale_fill_manual(
     values = c(
-      "Unsuitable (analogous climate)" = "grey85",
-      "Suitable (analogous climate)" = "#D55E00",
-      "Suitable (novel climate — uncertain)" = "#E69F00",
-      "Unsuitable (novel climate)" = "grey95"
+      "0 — Not suitable (any model)"          = "grey90",
+      "1 — Correlative only, analogous climate" = "#FEE391",
+      "2 — CLIMEX only, novel climate"         = "#74C476",
+      "3 — ≥2 models agree, novel climate"     = "#E69F00",
+      "4 — ≥2 models agree, analogous climate" = "#D55E00",
+      "5 — All 3 models agree"                 = "#7F0000"
     ),
-    name = NULL
+    name = NULL,
+    drop = FALSE
   ) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10)) +
   labs(
     title = expression(italic("D. variabilis") ~
-                       "— Binary Suitability with Extrapolation Assessment"),
-    subtitle = "Ensemble model (MaxEnt + BRT). Areas with novel climate flagged as uncertain."
+                       "— Three-Model Consensus Suitability"),
+    subtitle = paste(
+      "MaxEnt + BRT + CLIMEX. Green = CLIMEX-only in novel climate (e.g. north QLD).",
+      "Correlative models cannot predict here due to climate novelty."
+    )
   ) +
   theme_minimal(base_size = 12) +
   theme(
     panel.grid = element_blank(),
-    plot.title = element_text(face = "bold", size = 14),
+    plot.title = element_text(face = "bold", size = 13),
     legend.position = "bottom",
-    legend.text = element_text(size = 10)
+    legend.text = element_text(size = 9)
   ) +
-  guides(fill = guide_legend(nrow = 2))
+  guides(fill = guide_legend(nrow = 3))
 
 ggsave(file.path(figures_dir, "fig3_binary_suitability_mess.png"),
        fig3, width = 10, height = 8, dpi = 300)
@@ -330,8 +392,10 @@ cat(sprintf("  BRT: %d trees, tc=%d, CV_cor=%.3f\n",
             brt_metadata$n_trees, brt_metadata$tree_complexity,
             brt_metadata$cv_correlation))
 
-cat("\nPROJECTION TO AUSTRALIA:\n")
+cat("\nPROJECTION TO AUSTRALIA (Three-model ensemble):\n")
 print(area_summary, n = Inf)
+cat("\nNote: Ensemble uses MaxEnt + BRT (correlative) + CLIMEX (process-based).\n")
+cat("CLIMEX covers novel-climate zones (e.g. north QLD) missed by correlative models.\n")
 
 mess_vals <- values(mess_aus, na.rm = TRUE)
 pct_novel <- round(100 * sum(mess_vals < 0) / length(mess_vals), 1)

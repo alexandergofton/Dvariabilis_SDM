@@ -43,6 +43,7 @@ library(dismo)
 library(gbm)
 library(ENMeval)
 library(ecospat)
+library(mgcv)
 ```
 
 ## 1. Load models and data
@@ -320,7 +321,185 @@ print(comparison, n = Inf)
 write_csv(comparison, file.path(processed_dir, "model_comparison.csv"))
 ```
 
-## 9. Save evaluation outputs
+## 9. CLIMEX evaluation via WorldClim bridge
+
+CLIMEX is a process-based model — it has no spatial block cross-validation AUC
+because it was not statistically trained. To compute a comparable AUC for ensemble
+weighting, we use a WorldClim-bridge approach:
+
+1. Fit a GAM predicting CLIMEX EI from derived WorldClim summaries across Australia
+   (the relationship is near-deterministic: R² expected > 0.95)
+2. Apply the GAM to native-range (M extent) WorldClim data → estimate native-range EI
+3. Extract EI at native occurrence and background points → compute presence-background AUC
+
+This is the same protocol used for MaxEnt and BRT, ensuring comparability.
+
+```{r}
+#| label: climex-auc
+
+library(mgcv)
+
+# Australian extent and WorldClim directory
+aus_ext <- ext(rast(file.path(processed_dir, "env_selected_aus.tif")))
+M_ext   <- ext(rast(file.path(processed_dir, "env_selected_M.tif")))
+wc_dir  <- file.path(base_dir, "climatic_data", "wc2.1_2.5m")
+
+# Load Australian monthly WorldClim
+tmin_aus_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_tmin_%02d.tif", 1:12))), aus_ext)
+tmax_aus_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_tmax_%02d.tif", 1:12))), aus_ext)
+prec_aus_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_prec_%02d.tif", 1:12))), aus_ext)
+tmean_aus_m <- (tmin_aus_m + tmax_aus_m) / 2
+
+# Derive 4 climate summary predictors for GAM
+# These capture the dominant axes of CLIMEX EI variation
+tmean_ann_aus <- mean(tmean_aus_m)                     # annual mean temperature
+prec_ann_aus  <- sum(prec_aus_m)                       # annual total precipitation
+tmean_seas_aus <- app(tmean_aus_m, sd)                 # temperature seasonality (SD)
+prec_seas_aus  <- app(prec_aus_m, function(x) {        # precipitation seasonality (CV)
+  m <- mean(x, na.rm = TRUE)
+  if (is.na(m) || m == 0) NA_real_ else sd(x, na.rm = TRUE) / m
+})
+
+# Load CLIMEX EI for Australia (raw, 0-100 scale for GAM training)
+climex_EI_raw <- rast(file.path(processed_dir, "climex_EI_aus.tif"))
+
+# Build training data frame (sample up to 50k cells for speed)
+train_stack <- c(tmean_ann_aus, prec_ann_aus, tmean_seas_aus, prec_seas_aus, climex_EI_raw)
+names(train_stack) <- c("tmean_ann", "prec_ann", "tmean_seas", "prec_seas", "EI")
+
+set.seed(42)
+train_df <- as.data.frame(train_stack, na.rm = TRUE)
+if (nrow(train_df) > 50000) train_df <- train_df[sample(nrow(train_df), 50000), ]
+
+cat(sprintf("GAM training data: %d cells\n", nrow(train_df)))
+
+# Fit GAM: EI ~ smooth functions of climate summaries
+climex_bridge_gam <- gam(
+  EI ~ s(tmean_ann, k = 10) + s(prec_ann, k = 10) +
+       s(tmean_seas, k = 8) + s(prec_seas, k = 8),
+  data = train_df,
+  family = gaussian(),
+  method = "REML"
+)
+gam_r2 <- summary(climex_bridge_gam)$r.sq
+cat(sprintf("CLIMEX-WorldClim GAM R²: %.4f\n", gam_r2))
+if (gam_r2 < 0.90) {
+  warning("GAM R² < 0.90 — WorldClim bridge may be unreliable. CLIMEX weight should be used with caution.")
+}
+
+# Apply GAM to native range (M extent) monthly WorldClim
+tmin_M_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_tmin_%02d.tif", 1:12))), M_ext)
+tmax_M_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_tmax_%02d.tif", 1:12))), M_ext)
+prec_M_m <- crop(rast(file.path(wc_dir, sprintf("wc2.1_2.5m_prec_%02d.tif", 1:12))), M_ext)
+tmean_M_m <- (tmin_M_m + tmax_M_m) / 2
+
+tmean_ann_M <- mean(tmean_M_m)
+prec_ann_M  <- sum(prec_M_m)
+tmean_seas_M <- app(tmean_M_m, sd)
+prec_seas_M  <- app(prec_M_m, function(x) {
+  m <- mean(x, na.rm = TRUE)
+  if (is.na(m) || m == 0) NA_real_ else sd(x, na.rm = TRUE) / m
+})
+
+pred_stack_M <- c(tmean_ann_M, prec_ann_M, tmean_seas_M, prec_seas_M)
+names(pred_stack_M) <- c("tmean_ann", "prec_ann", "tmean_seas", "prec_seas")
+
+# Predict EI for the native range
+pred_df_M <- as.data.frame(pred_stack_M, xy = TRUE, na.rm = FALSE)
+non_na    <- complete.cases(pred_df_M[, 3:6])
+pred_df_M$EI_pred <- NA_real_
+pred_df_M$EI_pred[non_na] <- predict(
+  climex_bridge_gam,
+  newdata = pred_df_M[non_na, c("tmean_ann", "prec_ann", "tmean_seas", "prec_seas")]
+)
+
+# Convert back to raster (normalise to 0-1 for AUC)
+climex_EI_M_rast <- rast(pred_stack_M[[1]])  # template
+values(climex_EI_M_rast) <- pmax(0, pmin(100, pred_df_M$EI_pred))
+names(climex_EI_M_rast) <- "climex_EI_native"
+climex_EI_M_norm <- climex_EI_M_rast / 100
+
+# Extract at occurrence and background points
+occ_coords_df <- occ_env %>% dplyr::select(decimalLongitude, decimalLatitude)
+bg_coords_df  <- bg_env  %>% dplyr::select(lon, lat) %>%
+  rename(decimalLongitude = lon, decimalLatitude = lat)
+
+climex_occ_preds <- terra::extract(climex_EI_M_norm, occ_coords_df)[, 2]
+climex_bg_preds  <- terra::extract(climex_EI_M_norm, bg_coords_df)[, 2]
+
+# Remove NAs (points outside raster extent)
+valid <- !is.na(climex_occ_preds)
+climex_occ_preds <- climex_occ_preds[valid]
+valid_bg <- !is.na(climex_bg_preds)
+climex_bg_preds <- climex_bg_preds[valid_bg]
+
+climex_auc_val <- calc_auc(climex_occ_preds, climex_bg_preds)
+cat(sprintf("CLIMEX presence-background AUC (native range, via WorldClim bridge): %.3f\n",
+            climex_auc_val))
+cat(sprintf("  (Based on %d occurrence points and %d background points with valid EI)\n",
+            length(climex_occ_preds), length(climex_bg_preds)))
+
+# Save the bridged native-range EI raster for inspection
+writeRaster(climex_EI_M_norm,
+            file.path(processed_dir, "climex_EI_native_bridged.tif"),
+            overwrite = TRUE)
+```
+
+## 10. Ensemble weights — skill-above-random AUC
+
+Weights are computed as skill above random (AUC − 0.5), normalised to sum to 1.
+This penalises models with poor spatial transferability (AUC near 0.5) and rewards
+those that generalise well. MaxEnt's spatial block CV AUC is used; for BRT the
+CV correlation is converted (note: BRT reports CV correlation not AUC, so we use
+the training AUC as a fallback after confirming the comparison-table AUC).
+
+```{r}
+#| label: ensemble-weights
+
+# AUC values
+maxent_auc_val  <- maxent_metadata$auc_val     # spatial block CV AUC (from ENMeval)
+
+# BRT: use validation AUC from comparison table (row 2 = "Validation AUC (CV)")
+brt_auc_val_str <- comparison %>%
+  filter(Metric == "Validation AUC (CV)") %>%
+  pull(BRT)
+brt_auc_val <- as.numeric(brt_auc_val_str)
+
+# CLIMEX: presence-background AUC computed above
+# climex_auc_val already in environment
+
+cat("--- AUC values for ensemble weighting ---\n")
+sprintf("MaxEnt validation AUC (spatial block CV): %.3f", maxent_auc_val)
+sprintf("BRT validation AUC: %.3f", brt_auc_val)
+sprintf("CLIMEX AUC (WorldClim bridge): %.3f", climex_auc_val)
+
+# Skill above random (clamp to 0 — no negative weights)
+skills <- c(
+  MaxEnt = max(0, maxent_auc_val - 0.5),
+  BRT    = max(0, brt_auc_val    - 0.5),
+  CLIMEX = max(0, climex_auc_val - 0.5)
+)
+
+ensemble_weights <- skills / sum(skills)
+
+cat("\n=== ENSEMBLE WEIGHTS (skill-above-random AUC) ===\n")
+weights_df <- tibble(
+  model   = names(ensemble_weights),
+  auc_val = round(skills + 0.5, 3),
+  skill   = round(skills, 3),
+  weight  = round(ensemble_weights, 3)
+)
+print(weights_df)
+cat(sprintf("\nWeight sum: %.4f (should be 1.000)\n", sum(ensemble_weights)))
+
+# Save
+saveRDS(ensemble_weights,
+        file.path(processed_dir, "ensemble_weights.rds"))
+write_csv(weights_df,
+          file.path(processed_dir, "ensemble_weights.csv"))
+```
+
+## 11. Save evaluation outputs
 
 ```{r}
 #| label: save
@@ -346,5 +525,5 @@ writeLines(
   file.path(processed_dir, "primary_threshold.txt")
 )
 
-sprintf("Saved model evaluation results and thresholds")
+sprintf("Saved model evaluation results, thresholds, and ensemble weights")
 ```

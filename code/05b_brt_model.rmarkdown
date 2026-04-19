@@ -1,0 +1,348 @@
+---
+title: "Step 5b: Boosted Regression Trees (BRT) Model"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+
+
+
+## Overview
+
+This script fits a **Boosted Regression Trees (BRT)** model as a secondary model
+for comparison with MaxEnt. BRT captures non-linear relationships and interactions
+that MaxEnt may miss, and has been shown to outperform linear models for tick
+distribution modeling (90.6% vs 80.6% accuracy; PMC10054924).
+
+We use the same occurrence data, background points, and environmental variables
+as the MaxEnt model (Step 5) for direct comparability.
+
+
+
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(dismo)
+library(gbm)
+```
+
+
+
+
+## 1. Load data
+
+
+
+
+```{r}
+#| label: load-data
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+# Occurrence data with environmental values
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+bg_env <- readRDS(file.path(processed_dir, "background_with_env.rds"))
+
+# Selected variables
+selected_vars <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+sprintf("Occurrences: %d | Background: %d | Variables: %d",
+        nrow(occ_env), nrow(bg_env), length(selected_vars))
+```
+
+
+
+
+## 2. Prepare presence/absence data for BRT
+
+BRT requires a binary response: 1 for presence, 0 for pseudo-absence (background).
+
+We also create observation weights to address the prevalence imbalance between
+presence and background points. Without weighting, BRT optimises overall deviance
+and learns "mostly absent" as the baseline, producing diffuse moderate-suitability
+predictions and artificially low thresholds.
+
+
+
+
+```{r}
+#| label: prep-data
+
+# Presence data (extract selected variables)
+pres_data <- occ_env %>%
+  dplyr::select(all_of(selected_vars)) %>%
+  mutate(presence = 1)
+
+# Background (pseudo-absence) data
+bg_data <- bg_env %>%
+  dplyr::select(all_of(selected_vars)) %>%
+  mutate(presence = 0)
+
+# Combine
+brt_data <- bind_rows(pres_data, bg_data)
+
+# Create weights to equalise class influence
+# Presence weight = n_bg / n_pres, background weight = 1
+n_pres <- sum(brt_data$presence == 1)
+n_bg <- sum(brt_data$presence == 0)
+brt_data$weights <- ifelse(brt_data$presence == 1, n_bg / n_pres, 1)
+
+sprintf("BRT training data: %d rows (%d presence, %d background)",
+        nrow(brt_data), n_pres, n_bg)
+sprintf("Prevalence: %.1f%% — presence weight: %.2f, background weight: 1.00",
+        100 * n_pres / nrow(brt_data), n_bg / n_pres)
+```
+
+
+
+
+## 3. Fit BRT model using dismo::gbm.step
+
+We use `gbm.step()` which automatically selects the optimal number of trees
+via cross-validation.
+
+
+
+
+```{r}
+#| label: fit-brt
+#| cache: true
+
+set.seed(42)
+
+cat("Fitting BRT model — this may take several minutes...\n")
+
+# Identify predictor column indices (exclude presence and weights columns)
+pred_cols <- which(names(brt_data) %in% selected_vars)
+
+brt_model <- gbm.step(
+  data = as.data.frame(brt_data),
+  gbm.x = pred_cols,
+  gbm.y = which(names(brt_data) == "presence"),
+  family = "bernoulli",
+  tree.complexity = 5,     # Interaction depth
+  learning.rate = 0.005,   # Learning rate
+  bag.fraction = 0.75,     # Stochastic fraction
+  n.folds = 10,            # CV folds
+  site.weights = brt_data$weights,  # Equalise class influence
+  verbose = TRUE
+)
+
+# If learning rate is too high (< 1000 trees), reduce and retry
+if (is.null(brt_model) || brt_model$n.trees < 1000) {
+  cat("Reducing learning rate to 0.001 for more trees...\n")
+  brt_model <- gbm.step(
+    data = as.data.frame(brt_data),
+    gbm.x = pred_cols,
+    gbm.y = which(names(brt_data) == "presence"),
+    family = "bernoulli",
+    tree.complexity = 5,
+    learning.rate = 0.001,
+    bag.fraction = 0.75,
+    n.folds = 10,
+    site.weights = brt_data$weights,
+    verbose = TRUE
+  )
+}
+
+sprintf("BRT model fitted: %d trees, CV deviance = %.4f (+/- %.4f)",
+        brt_model$n.trees, brt_model$cv.statistics$deviance.mean,
+        brt_model$cv.statistics$deviance.se)
+```
+
+
+
+
+## 4. Variable importance
+
+
+
+
+```{r}
+#| label: var-importance
+
+# Get relative influence
+brt_importance <- summary(brt_model, plotit = FALSE) %>%
+  as_tibble() %>%
+  rename(variable = var, relative_influence = rel.inf) %>%
+  arrange(desc(relative_influence))
+
+cat("BRT Variable Importance:\n")
+print(brt_importance, n = Inf)
+
+# Plot variable importance
+ggplot(brt_importance, aes(x = reorder(variable, relative_influence),
+                           y = relative_influence)) +
+  geom_col(fill = "#009E73") +
+  coord_flip() +
+  labs(
+    title = expression(italic("D. variabilis") ~ "— BRT Variable Importance"),
+    x = "Variable",
+    y = "Relative Influence (%)"
+  ) +
+  theme_minimal(base_size = 12)
+
+ggsave(
+  file.path(figures_dir, "05b_brt_variable_importance.png"),
+  width = 8, height = 6, dpi = 300
+)
+```
+
+
+
+
+## 5. Partial dependence plots (response curves)
+
+
+
+
+```{r}
+#| label: partial-dependence
+#| fig-width: 12
+#| fig-height: 8
+
+# Generate partial dependence plots for all variables
+n_vars <- length(selected_vars)
+ncol_plot <- 3
+nrow_plot <- ceiling(n_vars / ncol_plot)
+
+png(file.path(figures_dir, "05b_brt_partial_dependence.png"),
+    width = 12, height = 2.5 * nrow_plot, units = "in", res = 300)
+par(mfrow = c(nrow_plot, ncol_plot), mar = c(4, 4, 2, 1))
+
+for (i in seq_along(selected_vars)) {
+  gbm.plot(brt_model, variable.no = i, plot.layout = c(1, 1),
+           write.title = FALSE, y.label = "Fitted function",
+           show.contrib = TRUE)
+  title(main = selected_vars[i], cex.main = 1)
+}
+dev.off()
+
+# Also display inline
+par(mfrow = c(nrow_plot, ncol_plot), mar = c(4, 4, 2, 1))
+for (i in seq_along(selected_vars)) {
+  gbm.plot(brt_model, variable.no = i, plot.layout = c(1, 1),
+           write.title = FALSE, y.label = "Fitted function",
+           show.contrib = TRUE)
+  title(main = selected_vars[i], cex.main = 1)
+}
+```
+
+
+
+
+## 6. Interaction effects
+
+BRT can detect pairwise interactions between variables.
+
+
+
+
+```{r}
+#| label: interactions
+
+# Find and display pairwise interactions
+interactions <- gbm.interactions(brt_model)
+
+cat("Top pairwise interactions:\n")
+interactions$rank.list %>%
+  head(10) %>%
+  print()
+```
+
+
+
+
+## 7. Model performance summary
+
+
+
+
+```{r}
+#| label: performance
+
+# Cross-validation performance
+cv_deviance <- brt_model$cv.statistics$deviance.mean
+cv_se <- brt_model$cv.statistics$deviance.se
+cv_cor <- brt_model$cv.statistics$correlation.mean
+cv_cor_se <- brt_model$cv.statistics$correlation.se
+
+cat("--- BRT Model Performance ---\n")
+sprintf("Number of trees: %d", brt_model$n.trees)
+sprintf("Tree complexity: %d", brt_model$interaction.depth)
+sprintf("Learning rate: %s", brt_model$shrinkage)
+sprintf("CV deviance: %.4f (+/- %.4f)", cv_deviance, cv_se)
+sprintf("CV correlation: %.4f (+/- %.4f)", cv_cor, cv_cor_se)
+
+# Calculate AUC on training data for comparison with MaxEnt
+train_preds <- predict(brt_model, brt_data, n.trees = brt_model$n.trees,
+                       type = "response")
+pres_preds <- train_preds[brt_data$presence == 1]
+bg_preds <- train_preds[brt_data$presence == 0]
+
+# Calculate AUC
+auc_val <- 0
+for (p in pres_preds) {
+  auc_val <- auc_val + sum(p > bg_preds) + 0.5 * sum(p == bg_preds)
+}
+auc_val <- auc_val / (length(pres_preds) * length(bg_preds))
+sprintf("Training AUC: %.3f", auc_val)
+```
+
+
+
+
+## 8. Save outputs
+
+
+
+
+```{r}
+#| label: save
+
+# Save BRT model
+saveRDS(brt_model, file.path(processed_dir, "brt_model.rds"))
+
+# Save variable importance
+write_csv(brt_importance, file.path(processed_dir, "brt_variable_importance.csv"))
+
+# Save model metadata
+brt_metadata <- list(
+  n_trees = brt_model$n.trees,
+  tree_complexity = brt_model$interaction.depth,
+  learning_rate = brt_model$shrinkage,
+  bag_fraction = brt_model$bag.fraction,
+  cv_deviance = cv_deviance,
+  cv_correlation = cv_cor,
+  training_auc = auc_val,
+  variables = selected_vars
+)
+saveRDS(brt_metadata, file.path(processed_dir, "brt_model_metadata.rds"))
+
+sprintf("Saved BRT model and metadata to processed_data/")
+```
+

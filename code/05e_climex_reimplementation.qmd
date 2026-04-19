@@ -491,36 +491,52 @@ if (!is.na(lismore_EI) && lismore_EI > 20) {
 #| fig-width: 14
 #| fig-height: 14
 
-EI_df  <- as.data.frame(EI,  xy = TRUE, na.rm = TRUE)
-gi_df  <- as.data.frame(c(gi_T, gi_M), xy = TRUE, na.rm = TRUE)
-str_df <- as.data.frame(c(dry_stress, cold_stress, heat_stress), xy = TRUE, na.rm = TRUE)
+EI_df <- as.data.frame(EI, xy = TRUE, na.rm = TRUE)
+gi_df <- as.data.frame(c(gi_T, gi_M), xy = TRUE, na.rm = TRUE)
+str_df <- as.data.frame(
+  c(dry_stress, cold_stress, heat_stress),
+  xy = TRUE,
+  na.rm = TRUE
+)
 
 # Map 1: Ecoclimatic Index
 p_ei <- ggplot() +
   geom_raster(data = EI_df, aes(x = x, y = y, fill = EI)) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  scale_fill_gradientn(
-    colours = c("grey95", "#FFF7BC", "#FEC44F", "#D95F0E", "#7F0000"),
-    values = c(0, 0.01, 0.2, 0.5, 1),
+  scale_fill_viridis_c(
     name = "EI",
-    na.value = "grey95"
+    option = "viridis",
+    na.value = "grey95",
+    trans = "sqrt"
   ) +
   labs(
-    title = expression(italic("D. variabilis") ~ "— CLIMEX Ecoclimatic Index (re-implementation)"),
+    title = expression(
+      italic("D. variabilis") ~ "— CLIMEX Ecoclimatic Index (re-implementation)"
+    ),
     subtitle = "Parameters from Halliday & Sutherst (1990); WorldClim 2.1 monthly climate data",
-    x = "Longitude", y = "Latitude"
+    x = "Longitude",
+    y = "Latitude"
   ) +
   theme_minimal(base_size = 11) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10))
 
 # Map 2: Growth indices
 p_gi <- ggplot() +
-  geom_raster(data = gi_df %>% pivot_longer(cols = c(gi_T, gi_M), names_to = "index"),
-              aes(x = x, y = y, fill = value)) +
+  geom_raster(
+    data = gi_df %>% pivot_longer(cols = c(gi_T, gi_M), names_to = "index"),
+    aes(x = x, y = y, fill = value)
+  ) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  facet_wrap(~index, labeller = labeller(index = c(gi_T = "GI_T (Temperature Growth)",
-                                                    gi_M = "GI_M (Moisture Growth)"))) +
-  scale_fill_viridis_c(name = "Index\nvalue", option = "plasma") +
+  facet_wrap(
+    ~index,
+    labeller = labeller(
+      index = c(
+        gi_T = "GI_T (Temperature Growth)",
+        gi_M = "GI_M (Moisture Growth)"
+      )
+    )
+  ) +
+  scale_fill_viridis_c(name = "Index\nvalue", option = "viridis") +
   labs(x = "Longitude", y = "Latitude") +
   theme_minimal(base_size = 11) +
   theme(strip.text = element_text(face = "bold")) +
@@ -528,33 +544,50 @@ p_gi <- ggplot() +
 
 # Map 3: Dominant limiting stress
 str_df_long <- str_df %>%
-  pivot_longer(cols = c(dry_stress, cold_stress, heat_stress), names_to = "stress_type") %>%
+  pivot_longer(
+    cols = c(dry_stress, cold_stress, heat_stress),
+    names_to = "stress_type"
+  ) %>%
   group_by(x, y) %>%
   slice_max(value, n = 1, with_ties = FALSE) %>%
   ungroup() %>%
-  mutate(stress_type = factor(stress_type,
-                              levels = c("dry_stress", "heat_stress", "cold_stress"),
-                              labels = c("Dry stress", "Heat stress", "Cold stress")))
+  mutate(
+    stress_type = factor(
+      stress_type,
+      levels = c("dry_stress", "heat_stress", "cold_stress"),
+      labels = c("Dry stress", "Heat stress", "Cold stress")
+    )
+  )
 
 p_stress <- ggplot() +
   geom_raster(data = str_df_long, aes(x = x, y = y, fill = stress_type)) +
   geom_sf(data = aus, fill = NA, colour = "black", linewidth = 0.3) +
-  scale_fill_manual(values = c("Dry stress" = "#D95F02",
-                                "Heat stress" = "#E7298A",
-                                "Cold stress" = "#1F78B4"),
-                    name = "Dominant\nlimiting stress") +
+  scale_fill_manual(
+    values = c(
+      "Dry stress" = "#D95F02",
+      "Heat stress" = "#E7298A",
+      "Cold stress" = "#1F78B4"
+    ),
+    name = "Dominant\nlimiting stress"
+  ) +
   labs(
     title = expression(italic("D. variabilis") ~ "— Dominant CLIMEX Stress"),
     subtitle = "Most limiting stress factor by cell",
-    x = "Longitude", y = "Latitude"
+    x = "Longitude",
+    y = "Latitude"
   ) +
   theme_minimal(base_size = 11) +
   coord_sf(xlim = c(112, 155), ylim = c(-45, -10))
 
 print(p_ei / p_gi / p_stress)
 
-ggsave(file.path(figures_dir, "05e_climex_reimplementation.png"),
-       p_ei / p_gi / p_stress, width = 10, height = 18, dpi = 300)
+ggsave(
+  file.path(figures_dir, "05e_climex_reimplementation.png"),
+  p_ei / p_gi / p_stress,
+  width = 10,
+  height = 18,
+  dpi = 300
+)
 ```
 
 ## 11. Area estimates and comparison with SDMs

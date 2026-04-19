@@ -1,0 +1,404 @@
+---
+title: "Step 5: MaxEnt Model Fitting via ENMeval"
+subtitle: "*Dermacentor variabilis* Species Distribution Model"
+author: "Alexander W. Gofton"
+date: today
+format:
+  gfm:
+    toc: true
+    toc-depth: 3
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+execute:
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+---
+
+
+
+
+## Overview
+
+This script fits MaxEnt models using the **ENMeval 2.0** framework for systematic
+model tuning. We test 18 candidate models (3 feature class combinations x
+6 regularization multipliers) using spatial block cross-validation.
+
+Product features (P) are excluded to prevent overly complex models that transfer
+poorly to novel environments. Minimum regularization is set to 1.0 to encourage
+smoother response surfaces suitable for cross-continental projection.
+
+Model selection follows multi-criteria:
+
+1. AICc (parsimony) — primary criterion
+2. AUC difference < 0.1 (training - validation) — overfitting filter
+3. Omission rate at 10% threshold
+4. Preference for simpler models when AICc is within 2 units
+
+
+
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(terra)
+library(ENMeval)
+library(rJava)
+```
+
+
+
+
+## 1. Load data
+
+
+
+
+```{r}
+#| label: load-data
+
+base_dir <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir <- file.path(base_dir, "figures")
+
+# Occurrence data
+occ_env <- readRDS(file.path(processed_dir, "occurrences_with_env.rds"))
+occ_coords <- occ_env %>% select(decimalLongitude, decimalLatitude)
+
+# Background data
+bg_env <- readRDS(file.path(processed_dir, "background_with_env.rds"))
+bg_coords <- bg_env %>% select(decimalLongitude = lon, decimalLatitude = lat)
+
+# Environmental stack (selected variables, M extent)
+env_M <- rast(file.path(processed_dir, "env_selected_M.tif"))
+
+# Selected variables
+selected_vars <- readLines(file.path(processed_dir, "selected_variables.txt"))
+
+sprintf("Occurrences: %d | Background: %d | Variables: %d",
+        nrow(occ_coords), nrow(bg_coords), length(selected_vars))
+cat("Selected variables:", paste(selected_vars, collapse = ", "), "\n")
+```
+
+
+
+
+## 2. Define tuning parameters
+
+
+
+
+```{r}
+#| label: tuning-params
+
+# Feature classes to test
+# NOTE: Product features (P) removed — they create highly complex interaction
+# terms (185+ coefficients at low regularization) that overfit training data
+# and transfer poorly to novel environments (Australia). LQH is sufficient
+# to capture non-linear responses.
+feature_classes <- c("L", "LQ", "LQH")
+
+# Regularization multipliers
+# NOTE: Minimum increased from 0.5 to 1.0. Low regularization (0.5) with
+# complex feature classes leads to overfitting for cross-continental transfer.
+# Higher regularization produces smoother response surfaces that generalise better.
+reg_multipliers <- c(1, 1.5, 2, 3, 4, 5)
+
+# Total candidate models
+n_models <- length(feature_classes) * length(reg_multipliers)
+sprintf("Testing %d candidate models (%d feature classes x %d regularization multipliers)",
+        n_models, length(feature_classes), length(reg_multipliers))
+```
+
+
+
+
+## 3. Run ENMeval
+
+Fit all candidate models using spatial block cross-validation (4 folds).
+
+
+
+
+```{r}
+#| label: enmeval-run
+#| cache: true
+
+set.seed(7990)
+
+cat("Running ENMevaluate — this may take several minutes...\n")
+
+enmeval_results <- ENMevaluate(
+  occs = occ_coords,
+  envs = env_M,
+  bg = bg_coords,
+  algorithm = "maxent.jar",
+  partitions = "block",
+  tune.args = list(
+    fc = feature_classes,
+    rm = reg_multipliers
+  ),
+  doClamp = TRUE,
+  parallel = TRUE,
+  numCores = 4
+)
+
+cat("ENMevaluate complete.\n")
+sprintf("Tested %d models", nrow(enmeval_results@results))
+```
+
+
+
+
+## 4. Model selection — multi-criteria
+
+
+
+
+```{r}
+#| label: model-selection
+
+results <- enmeval_results@results
+
+# Add derived metrics
+results <- results %>%
+  mutate(
+    # AUC difference (overfitting indicator)
+    auc.diff = auc.train - auc.val.avg,
+    # Delta AICc
+    delta.AICc = AICc - min(AICc, na.rm = TRUE)
+  )
+
+# Display all model results
+cat("All model results:\n")
+results %>%
+  select(fc, rm, auc.train, auc.val.avg, auc.diff,
+         or.10p.avg, AICc, delta.AICc, ncoef) %>%
+  arrange(AICc) %>%
+  as_tibble() %>%
+  print(n = Inf)
+```
+
+
+
+
+## 5. Apply selection criteria
+
+
+
+
+```{r}
+#| label: selection-criteria
+
+# Step 1: Filter by AUC difference < 0.1 (overfitting filter)
+auc_diff_threshold <- 0.1
+candidates <- results %>%
+  filter(auc.diff < auc_diff_threshold)
+
+if (nrow(candidates) == 0) {
+  cat("WARNING: No models with AUC diff < 0.1. Relaxing to 0.15.\n")
+  auc_diff_threshold <- 0.15
+  candidates <- results %>%
+    filter(auc.diff < auc_diff_threshold)
+}
+
+sprintf("Models passing AUC difference filter (< %.2f): %d of %d",
+        auc_diff_threshold, nrow(candidates), nrow(results))
+
+# Step 2: Among passing models, select by AICc
+# If multiple models within 2 AICc units, prefer simpler (fewer coefficients)
+best_AICc <- min(candidates$AICc, na.rm = TRUE)
+
+top_candidates <- candidates %>%
+  filter(AICc <= best_AICc + 2) %>%
+  arrange(ncoef, AICc)
+
+cat("\nTop candidate models (within 2 AICc of best):\n")
+top_candidates %>%
+  select(fc, rm, auc.train, auc.val.avg, auc.diff, or.10p.avg, AICc, delta.AICc, ncoef) %>%
+  as_tibble() %>%
+  print(n = Inf)
+
+# Select the simplest model within 2 AICc of the best
+selected_model_idx <- top_candidates$tune.args[1]
+selected_row <- top_candidates[1, ]
+
+cat("\n--- SELECTED MODEL ---\n")
+sprintf("Feature class: %s", selected_row$fc)
+sprintf("Regularization multiplier: %s", selected_row$rm)
+sprintf("Training AUC: %.3f", selected_row$auc.train)
+sprintf("Validation AUC: %.3f", selected_row$auc.val.avg)
+sprintf("AUC difference: %.3f", selected_row$auc.diff)
+sprintf("Omission rate (10%%): %.3f", selected_row$or.10p.avg)
+sprintf("AICc: %.1f", selected_row$AICc)
+sprintf("Number of coefficients: %d", selected_row$ncoef)
+```
+
+
+
+
+## 6. Extract the selected model
+
+
+
+
+```{r}
+#| label: extract-model
+
+# Get the selected model object
+selected_key <- paste0("fc.", selected_row$fc, "_rm.", selected_row$rm)
+selected_model <- enmeval_results@models[[selected_key]]
+
+cat("Selected model key:", selected_key, "\n")
+```
+
+
+
+
+## 7. Variable importance of selected model
+
+
+
+
+```{r}
+#| label: var-importance
+
+# Get variable importance from ENMeval results
+var_imp <- enmeval_results@variable.importance[[selected_key]]
+
+cat("Variable importance (selected model):\n")
+var_imp %>%
+  arrange(desc(permutation.importance)) %>%
+  as_tibble() %>%
+  print(n = Inf)
+```
+
+
+
+
+## 8. Response curves
+
+
+
+
+```{r}
+#| label: response-curves
+#| fig-width: 12
+#| fig-height: 8
+
+# Generate response curves using ENMeval
+response_data <- list()
+
+for (v in selected_vars) {
+  # Create a sequence of values for this variable
+  var_range <- range(terra::values(env_M[[v]]), na.rm = TRUE)
+  var_seq <- seq(var_range[1], var_range[2], length.out = 100)
+
+  # Create a data frame holding all other variables at their mean
+  mean_vals <- as.data.frame(t(colMeans(
+    terra::extract(env_M, occ_coords)[, -1],
+    na.rm = TRUE
+  )))
+
+  pred_df <- mean_vals[rep(1, 100), ]
+  pred_df[[v]] <- var_seq
+
+  # Predict using the selected model
+  pred <- predict(selected_model, pred_df, type = "cloglog")
+
+  response_data[[v]] <- tibble(
+    variable = v,
+    value = var_seq,
+    suitability = pred
+  )
+}
+
+response_all <- bind_rows(response_data)
+
+ggplot(response_all, aes(x = value, y = suitability)) +
+  geom_line(colour = "#0072B2", linewidth = 1) +
+  facet_wrap(~variable, scales = "free_x", ncol = 3) +
+  labs(
+    title = expression(italic("D. variabilis") ~ "— MaxEnt Response Curves (Selected Model)"),
+    x = "Environmental Value",
+    y = "Habitat Suitability (cloglog)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(face = "bold")) +
+  ylim(0, 1)
+
+ggsave(
+  file.path(figures_dir, "05_response_curves.png"),
+  width = 12, height = 8, dpi = 300
+)
+```
+
+
+
+
+## 9. Model selection summary table
+
+
+
+
+```{r}
+#| label: summary-table
+
+# Create summary for all models
+model_summary <- results %>%
+  select(fc, rm, auc.train, auc.val.avg, auc.diff, or.10p.avg,
+         AICc, delta.AICc, ncoef) %>%
+  arrange(AICc) %>%
+  mutate(selected = (fc == selected_row$fc & rm == selected_row$rm))
+
+write_csv(model_summary, file.path(processed_dir, "enmeval_model_summary.csv"))
+
+cat("Model selection summary saved.\n")
+```
+
+
+
+
+## 10. Save outputs
+
+
+
+
+```{r}
+#| label: save
+
+# Full ENMeval results object
+saveRDS(enmeval_results, file.path(processed_dir, "enmeval_results.rds"))
+
+# Selected model
+saveRDS(selected_model, file.path(processed_dir, "selected_maxent_model.rds"))
+
+# Variable importance
+write_csv(var_imp, file.path(processed_dir, "variable_importance_final.csv"))
+
+# Selected model metadata
+model_metadata <- list(
+  feature_class = as.character(selected_row$fc),
+  reg_multiplier = as.numeric(selected_row$rm),
+  auc_train = selected_row$auc.train,
+  auc_val = selected_row$auc.val.avg,
+  auc_diff = selected_row$auc.diff,
+  omission_10p = selected_row$or.10p.avg,
+  AICc = selected_row$AICc,
+  n_coefficients = selected_row$ncoef,
+  variables = selected_vars
+)
+saveRDS(model_metadata, file.path(processed_dir, "selected_model_metadata.rds"))
+
+sprintf("Saved ENMeval results, selected MaxEnt model, and variable importance")
+```
+

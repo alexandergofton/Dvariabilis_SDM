@@ -194,7 +194,8 @@ p <- ggplot() +
   scale_fill_viridis_c(
     name = "Model\nDisagreement\n|MaxEnt - BRT|",
     option = "plasma",
-    limits = c(0, 0.8)
+    limits = c(0, 0.8),
+    trans = "sqrt"
   ) +
   labs(
     title = expression(italic("D. variabilis") ~ "— MaxEnt vs BRT Prediction Disagreement"),

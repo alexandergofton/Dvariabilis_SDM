@@ -1,0 +1,412 @@
+---
+title: "Climatic Suitability Assessment for *Dermacentor variabilis* in Australia"
+subtitle: "American Dog Tick (*Dermacentor variabilis*) | Species Distribution Model"
+author:
+  name: "Dr Alexander W. Gofton"
+  affiliations:
+    name: "**CSIRO** Health & Biosecurity"
+    city: Brisbane
+    country: Australia
+  email: alexander.gofton@csiro.au
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-float: true
+    code-fold: false
+    theme:
+      light: flatly
+      dark: solar
+    fig-cap-location: bottom
+    fig-align: center
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: false
+knitr:
+  opts_chunk:
+    results: hold
+    cache.lazy: false
+    out.width: "100%"
+embed-resources: true
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+base_dir      <- "~/Library/CloudStorage/OneDrive-CSIRO/OneDrive - Docs/01_Projects/SDM/Dvariabilis_SDM"
+processed_dir <- file.path(base_dir, "processed_data")
+figures_dir   <- file.path(base_dir, "figures")
+outputs_dir   <- file.path(base_dir, "outputs")
+```
+
+***
+
+## Disclaimer
+**CONFIDENTIAL - NOT FOR CIRCULATION WITHOUT AUTHOR PERMISSION**
+
+The findings and analyses displayed here are part of ongoing research and are provisional. They may be **incomplete, subject to revision, or contain errors.**
+
+***
+
+## Executive Summary
+
+*Dermacentor variabilis* (American dog tick) is a medically important tick native to eastern North America that parasitises a wide variety of vertebrate hosts, inlcuding livestock, companion animals (dogs), and humans. In it's native range it is an important vector of Rocky Mountain spotted fever (*Rickettsia rickettsii*) and tularaemia (*Francisella tularensis*). It is also a competent vector of cattle fever agents inclding *Anaplasma marginale*, and canine ehrlichiosis (*Ehrlichia canis*), both of which are established in northern Australia. *D. variabilis* also causes often fatal ascending paralysis in dogs. The potential introduction of *D. variabilis* into Australia is of significnt concern and this assessment evaluates whether Australian climate is suitable for establishment if the species were introduced.
+
+Several prior incursion of *D. variabilis* via human travel are noted in the literature, inlcuding into Australia (Halliday & Sutherst, 1990), New Zealand (Hutt, 2005), and Brazil (Martins & Pinter, 2022), and Kenya (iNaturalist records)
+
+**Key findings:**
+
+- The eastern Australian coastline, **from south-east Queensland to Victoria**, is climatically suitable for *D. variabilis* establishment based on three independent modelling approaches (MaxEnt, BRT, and CLIMEX).
+- The dominant limiting factor across Australia is **aridity**. The arid interior and western regions are climatically unsuitable due to insufficient moisture.
+- CLIMEX (a process-based model) uniquely identifies tropical north Queensland as suitable, consistent with known occurrence records from that region and extending the correlative model predictions.
+- Australian climate occupies a **partially overlapping but distinct** climatic space relative to the native range (Schoener's D = 0.27), meaning only part of the native niche is represented in Australia.
+- If introduced, adult ticks in southern Australia would likely be active during **October–April** (austral spring/summer), while subtropical south-east Queensland could support **near year-round** activity.
+
+---
+
+## 1. Study Design
+
+*Dermacentor variabilis* was modelled using a multi-algorithm ensemble of two correlative species distribution models (MaxEnt and Boosted Regression Trees, BRT) and one process-based physiological model (CLIMEX). Models were trained on the species' native range in eastern North America using occurrence records from the Global Biodiversity Information Facility (GBIF). Climate envelope models were then projected to Australia to assess climatic suitability.
+
+The ensemble combined model outputs using **skill-weighted averaging** based on independent spatial cross-validation AUC, giving most weight to MaxEnt (54.1%), moderate weight to CLIMEX (30.7%), and least weight to BRT (15.2%) which showed spatial overfitting. A **committee vote** (count of models predicting suitable) provides a conservative measure of multi-evidence agreement.
+
+```{r}
+#| label: fig-study-design
+#| fig-cap: "**Study design.** Native range occurrences (eastern North America, east of 105°W; *n* = 4,580 thinned records), accessible area *M* (500 km buffered convex hull), and Australia (projection target)."
+
+knitr::include_graphics(file.path(figures_dir, "fig1_study_design.png"))
+```
+
+---
+
+## 2. Occurrence & Background Data
+
+A total of **22,668 raw *D. variabilis* records** were downloaded from GBIF. Following cleaning (removal of duplicates, coordinates with insufficient precision, and records outside the native range), **4,580 thinned records** were retained at a 10 km spatial thinning resolution. Records were restricted to east of 105°W to exclude *D. similis* (a recently described sister taxon occupying the western Rocky Mountain populations; Lado et al. 2021).
+
+Background pseudo-absence points (*n* = 10,000) were drawn randomly within the accessible area *M*, excluding a 10km buffer around any occurance point. Attempts were made to utilise Ixodidae records within the accessible area (other ticks of the same order from the same sampling framework). However, significant geographic bias was observed due to 1) samnpling bias, and 2) distinct climatic presereved of *Amblyomma* and *Ixodes* records.
+
+```{r}
+#| label: fig-occurrences
+#| fig-cap: "**Occurrence records (red), psudo-absence points (blue), and accessible area (orange line).** Thinned *D. variabilis* occurrence records (*n* = 4,580) within the accessible area *M* used for model training. Points are restricted to eastern North America (east of 105°W) to reflect *D. variabilis sensu stricto* following the Lado et al. (2021) taxonomic revision."
+
+knitr::include_graphics(file.path(figures_dir, "02_random_background_points_map.png"))
+```
+
+---
+
+## 3. Environmental Variables
+
+Five environmental variables were selected from an initial pool of 21 candidates through pairwise correlation analysis (|r| < 0.7), VIF-based stepwise reduction (VIF < 10), and preliminary MaxEnt jackknife assessment. Annual mean temperature (Bio1) was forced into the final set as the dominant predictor in all published *D. variabilis* SDMs (>74% contribution in Alkishe et al. 2020).
+
+```{r}
+#| label: tbl-variables
+#| tbl-cap: "Selected environmental variables and their importance in the MaxEnt model. All final VIF values < 10 (max = 8.5). Variable importance for BRT is relative influence (%)."
+
+var_imp <- read_csv(file.path(outputs_dir, "table2_variable_importance.csv"),
+                   show_col_types = FALSE)
+
+var_imp %>%
+  mutate(
+    variable = case_when(
+      variable == "bio1"        ~ "Bio1",
+      variable == "aridity_idx" ~ "Aridity Index",
+      variable == "bio15"       ~ "Bio15",
+      variable == "bio7"        ~ "Bio7",
+      variable == "bio12"       ~ "Bio12",
+      TRUE ~ variable
+    ),
+    description = case_when(
+      variable == "Bio1"          ~ "Annual Mean Temperature",
+      variable == "Aridity Index" ~ "Thornthwaite Aridity Index",
+      variable == "Bio15"         ~ "Precipitation Seasonality",
+      variable == "Bio7"          ~ "Temperature Annual Range",
+      variable == "Bio12"         ~ "Annual Precipitation",
+      TRUE ~ variable
+    ),
+    maxent_contribution = sprintf("%.1f%%", maxent_contribution),
+    maxent_permutation  = sprintf("%.1f%%", maxent_permutation),
+    brt_relative_influence = sprintf("%.1f%%", brt_relative_influence)
+  ) %>%
+  select(
+    Variable = variable,
+    Description = description,
+    `MaxEnt Contribution` = maxent_contribution,
+    `MaxEnt Permutation` = maxent_permutation,
+    `BRT Rel. Influence` = brt_relative_influence
+  ) %>%
+  kable(align = c("l", "l", "r", "r", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE) %>%
+  column_spec(1, bold = TRUE)
+```
+
+The two dominant variables, **Bio1 (annual mean temperature, 45%)** and **Aridity Index (39%)**, together explain >84% of MaxEnt model variance, highlighting that *D. variabilis* distribution is primarily constrained by thermal suitability and moisture availability. This is consistent with the CLIMEX physiological analysis by Halliday & Sutherst (1990), which identified summer humidity as the primary limiting factor for tick establishment in Australia.
+
+---
+
+## 4. Model Performance
+
+```{r}
+#| label: tbl-model-performance
+#| tbl-cap: "Model performance metrics for MaxEnt and BRT. Validation AUC uses spatial block cross-validation (4 folds); this is the most conservative and reliable performance estimate as it tests spatial transferability rather than random holdout. Boyce index was computed on training data and cannot differentiate models."
+
+model_comp <- read_csv(file.path(outputs_dir, "table1_model_comparison.csv"),
+                       show_col_types = FALSE)
+
+model_comp %>%
+  kable(col.names = c("Metric", "MaxEnt", "BRT"),
+        align = c("l", "r", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE) %>%
+  row_spec(which(model_comp$Metric == "Validation AUC (CV)"),
+           bold = TRUE, background = "#e8f4f8") %>%
+  footnote(general = "MaxSS = threshold maximising sensitivity + specificity.",
+           general_title = "Note: ")
+```
+
+MaxEnt generalises well to held-out spatial blocks (AUC = 0.824), indicating the model captures genuine spatial signal rather than local overfitting. BRT training AUC (0.888) is higher than MaxEnt, but its spatial cross-validation AUC drops to 0.591 (barely above random) indicating substantial spatial overfitting. This is why BRT receives only 15.2% weight in the ensemble.
+
+### Ensemble Weights
+
+```{r}
+#| label: tbl-ensemble-weights
+#| tbl-cap: "Data-driven ensemble weights based on skill-above-random AUC (skill = AUC_val − 0.5, normalised to sum = 1). MaxEnt dominates because it best generalises across spatial blocks. CLIMEX (process-based) AUC was estimated via a WorldClim bridge GAM (R² = 0.97), using the same occurrence and background data as the correlative models."
+
+ens_weights <- read_csv(file.path(processed_dir, "ensemble_weights.csv"),
+                        show_col_types = FALSE)
+
+ens_weights %>%
+  mutate(
+    model  = factor(model, levels = c("MaxEnt", "BRT", "CLIMEX")),
+    auc_val = sprintf("%.3f", auc_val),
+    skill   = sprintf("%.3f", skill),
+    weight  = sprintf("%.1f%%", weight * 100)
+  ) %>%
+  arrange(model) %>%
+  kable(col.names = c("Model", "Validation AUC", "Skill (AUC − 0.5)", "Ensemble Weight"),
+        align = c("l", "r", "r", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE)
+```
+
+### Variable Importance Comparison
+
+```{r}
+#| label: fig-var-importance
+#| fig-cap: "**Variable importance comparison.** MaxEnt percent contribution and permutation importance versus BRT relative influence. Both models agree that Bio1 (annual mean temperature) and aridity are the primary drivers, but BRT places relatively more weight on Bio15 (precipitation seasonality) and less on Bio1 compared to MaxEnt."
+
+knitr::include_graphics(file.path(figures_dir, "06_variable_importance_comparison.png"))
+```
+
+---
+
+## 5. Projected Suitability in Australia
+
+### Continuous Suitability
+
+```{r}
+#| label: fig-projection-panels
+#| fig-cap: "**Projected climatic suitability in Australia.** **(A)** MaxEnt continuous suitability (cloglog); **(B)** BRT continuous suitability; **(C)** CLIMEX Ecoclimatic Index (normalised 0–1); **(D)** Weighted ensemble (MaxEnt 54.1% + CLIMEX 30.7% + BRT 15.2%); **(E)** Committee vote (number of models predicting suitable; 0–3); **(F)** MESS surface. Negative values indicate novel climate not represented in the training data. All three models converge on the east coast as the primary suitable zone."
+
+knitr::include_graphics(file.path(figures_dir, "07_australia_projection.png"))
+```
+
+### Multi-Evidence Consensus Map
+
+```{r}
+#| label: fig-consensus
+#| fig-cap: "**Multi-evidence consensus suitability map.** Six-class synthesis integrating model agreement and climate novelty. 'Correlative only (analogue)': MaxEnt or BRT predict suitable in non-novel climate. 'CLIMEX only (novel)': only the process-based model predicts suitable in novel Australian climate (primarily tropical north QLD). '≥2 models agree': the core recommended suitable zone. 'All three agree': the most conservative high-confidence estimate. Grey: predicted unsuitable by all models."
+
+knitr::include_graphics(file.path(figures_dir, "07c_multi_evidence_synthesis.png"))
+```
+
+---
+
+## 6. Climate Novelty Assessment (MESS)
+
+Multivariate Environmental Similarity Surface (MESS) analysis quantifies how novel Australian climate is relative to the training extent. Cells with MESS < 0 contain at least one environmental variable outside the range seen during model training. Predictions in these regions are extrapolations and should be interpreted with caution.
+
+**42.2% of Australia has novel climate** for at least one variable. The CLIMEX Ecoclimatic Index, being a process-based physiological model calibrated from first-principles biology, is not subject to this extrapolation limitation.
+
+```{r}
+#| label: fig-mess
+#| fig-cap: "**Per-variable climate novelty in Australia.** MESS decomposition showing which environmental variable drives novelty in each cell (most dissimilar variable). Aridity index and Bio1 (annual mean temperature) are the primary drivers of novelty, particularly in arid interior regions and tropical north. These are the same variables that most strongly limit *D. variabilis* distribution, confirming that the models cannot reliably predict suitability in the driest and hottest parts of Australia using correlative methods alone."
+
+knitr::include_graphics(file.path(figures_dir, "07b_per_variable_novelty.png"))
+```
+
+The CLIMEX model fills the interpretive gap for novel-climate regions. Known *D. variabilis* records from north Queensland align with areas where CLIMEX predicts suitable conditions but MESS < 0 for the correlative models, validating the importance of including the process-based model in the ensemble.
+
+---
+
+## 7. Niche Analysis
+
+Niche analysis compares the environmental space occupied by *D. variabilis* in its native range with the environmental space available in Australia, using PCA-based ordination (ecospat framework).
+
+```{r}
+#| label: tbl-niche
+#| tbl-cap: "Niche overlap and similarity statistics between the native North American range and Australian climate space. Schoener's D and Warren's I measure overlap on a 0–1 scale. Equivalency test: null hypothesis that niches are equivalent (p < 0.05 rejects equivalency). Similarity test: null hypothesis that niches are more similar than expected by chance (p > 0.05 cannot reject similarity)."
+
+niche_tbl <- read_csv(file.path(outputs_dir, "table4_niche_analysis.csv"),
+                      show_col_types = FALSE)
+
+niche_tbl %>%
+  mutate(
+    value = case_when(
+      grepl("p-value", metric, ignore.case = TRUE) ~
+        sprintf("%.3f", as.numeric(value)),
+      TRUE ~ sprintf("%.3f", as.numeric(value))
+    )
+  ) %>%
+  kable(col.names = c("Metric", "Value"),
+        align = c("l", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE)
+```
+
+The niche overlap statistics (D = 0.27, I = 0.49) indicate **partial but not complete overlap** between native-range and Australian climate spaces. The equivalency test is significant (p = 0.001), confirming the niches are not identical. However, the similarity tests are non-significant (p > 0.05), indicating that the niches are **not more similar than expected by random chance**. There is no evidence that Australia has been selectively filtered to match the native niche.
+
+**Interpretation for biosecurity:** Australia has some but not all of the climate conditions experienced in the native range. The most analogous areas (non-novel climate, low MESS, high suitability) are on the eastern seaboard where *Haemaphysalis longicornis* has already successfully established, a species with broadly similar climate requirements.
+
+```{r}
+#| label: fig-niche-pca
+#| fig-cap: "**Niche comparison — PCA climate space.** The native range (grey density) and Australian climate space (blue outline) plotted in principal component space derived from all candidate environmental variables. Overlap represents climate analogues. PC1 primarily separates warm/arid (right) from cool/humid (left) climates; PC2 separates seasonal from aseasonal climates. Dots indicate *D. variabilis* occurrence records projected into the same climate space."
+
+knitr::include_graphics(file.path(figures_dir, "08_niche_pca.png"))
+```
+
+```{r}
+#| label: fig-ecospat
+#| fig-cap: "**Ecospat niche overlap plots.** Smoothed occurrence density (green) in native range climate space (left) versus Australian climate space (right). The grey background represents available climate. The dashed line indicates the niche boundary at the 10th percentile. Overlap is shown by the shaded region in the third panel. A higher proportion of the native niche falls within analogous Australian climate than vice versa."
+
+knitr::include_graphics(file.path(figures_dir, "08_ecospat_niche_plots.png"))
+```
+
+---
+
+## 8. Seasonal Activity Potential
+**This section is very preliminary and requires significant work to validate.**
+
+If *D. variabilis* were introduced to Australia, understanding **when** adult ticks would be active is critical for surveillance planning and assessing host-exposure risk. Activity phenology was modelled using a climate-matching approach: an empirical temperature–activity response function was derived from native-range occurrence data weighted by literature-documented monthly activity intensity (peak May–June in the native range), then projected to Australian monthly climate.
+
+**Note:** This seasonal model represents *relative adult questing activity* in climatically suitable areas only. It does not predict tick abundance or actual exposure risk.
+
+### Temperature–Activity Response
+
+```{r}
+#| label: fig-activity-curve
+#| fig-cap: "**Fitted temperature–activity response curve.** The empirical relationship between monthly mean temperature and predicted adult questing activity, derived from native-range occurrence points weighted by literature activity scores (May–June = peak, January = zero, etc.). Activity peaks between approximately 15–20°C and is suppressed at low (<5°C) and high (>30°C) temperatures, consistent with published tick thermal biology. Shaded band shows 95% confidence interval of the GAM fit."
+
+knitr::include_graphics(file.path(figures_dir, "10_activity_response_curve.png"))
+```
+
+### Monthly Activity Maps
+
+```{r}
+#| label: fig-monthly-activity
+#| fig-cap: "**Predicted monthly adult questing activity across Australia.** Activity scores (0–1) for each calendar month, masked to the annual suitable area (union of MaxEnt and BRT predictions) and MESS-filtered to analogue climate only. Southern regions show a pronounced austral spring/summer peak (September–March); subtropical south-east Queensland shows elevated activity for more of the year. White: unsuitable or novel climate. Grey: Australia boundary."
+
+knitr::include_graphics(file.path(figures_dir, "10_monthly_activity_facets.png"))
+```
+
+
+### Regional Phenology
+
+```{r}
+#| label: fig-regional-phenology
+#| fig-cap: "**Regional monthly activity profiles.** Predicted monthly adult activity for four Australian regions compared with the native-range reference phenology (eastern USA literature data, shifted by 6 months for direct comparison). Australian regions in climatically suitable areas show activity windows of comparable duration (10–12 months in subtropical QLD; 9–11 months in temperate zones) versus the native-range 5–6 month window. This suggests that if established, *D. variabilis* populations in Australia would have a **longer active season** than in the native range."
+
+knitr::include_graphics(file.path(figures_dir, "10_regional_phenology.png"))
+```
+
+```{r}
+#| label: tbl-phenology
+#| tbl-cap: "Predicted seasonal activity summary by Australian region. 'Peak month' is the calendar month of highest activity score. 'Active months (>0.5)' counts months where relative activity exceeds 50% of peak. Compare to the native-range reference: peak May–June, 6 months above 50% threshold."
+
+pheno <- read_csv(file.path(processed_dir, "regional_phenology_summary.csv"),
+                  show_col_types = FALSE)
+
+pheno %>%
+  mutate(region = str_replace_all(region, "\n", " ")) %>%
+  select(
+    Region = region,
+    `Peak Month` = peak_month,
+    `Months Active (>0.3)` = months_above_0.3,
+    `Months Active (>0.5)` = months_above_0.5
+  ) %>%
+  kable(align = c("l", "c", "c", "c")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE) %>%
+  row_spec(1, bold = TRUE, background = "#e8f4f8",
+           extra_css = "font-style: italic;")
+```
+
+---
+
+## 9. Key Findings & Biosecurity Implications
+
+### 1. Eastern Australia is climatically suitable
+
+Three independent modelling approaches (MaxEnt, BRT, CLIMEX) consistently identify the eastern Australian coastline as the primary zone of climatic suitability for *D. variabilis*. The core suitable zone where all three models agree covers approximately **189,000 km²**, comparable in area to the state of Victoria. The broader zone where at least two models agree covers **244,000 km²**, extending from south-east Queensland through New South Wales to Victoria.
+
+### 2. Moisture is the primary limiting factor
+
+Aridity and annual precipitation are the second-most important variables across all three modelling approaches. The arid interior and western Australia are predicted unsuitable on moisture grounds alone, regardless of temperature. This is consistent with Halliday & Sutherst's (1990) CLIMEX analysis which identified low summer humidity as the primary physiological constraint on tick establishment in Australia.
+
+### 3. CLIMEX uniquely captures tropical north Queensland
+
+Correlative models (MaxEnt, BRT) are limited in tropical north Queensland because 42% of Australia's climate is novel relative to the training extent. CLIMEX, calibrated from physiological parameters rather than statistical correlations, predicts suitable conditions in north Queensland, consistent with known *D. variabilis* occurrence records from that region. The multi-evidence synthesis map separates this zone as "CLIMEX only (novel climate)" to be transparent about the evidence base.
+
+### 4. Predicted active season is longer than in the native range
+
+If *D. variabilis* were introduced to climatically suitable areas of Australia, adults would be predicted to be active for **10–12 months per year** in subtropical south-east Queensland and **9–11 months** in temperate coastal zones, compared to 5–6 months in the native eastern USA range. Peak activity would fall in the austral spring/early summer (October–March in temperate zones; year-round in subtropical QLD). This extended active window reflects Australia's milder winters compared to the northern USA, where cold temperatures suppress tick activity for half the year.
+
+### 5. Confidence assessment
+
+| Region | Confidence | Evidence |
+|--------|------------|----------|
+| SE Queensland to Victoria (coastal) | **High** | All three models agree; analogue climate; consistent with *H. longicornis* establishment zone |
+| Tropical north Queensland | **Moderate** | CLIMEX predicts suitable; known occurrence records; limited by correlative model extrapolation in novel climate |
+| South-west Western Australia (coastal) | **Low–Moderate** | MaxEnt and ensemble suggest possible suitability; insufficient evidence from other models |
+| Inland and western arid zones | **Very low** | All models predict unsuitable; moisture-limited |
+| Tasmania | **Moderate** | Correlative models predict suitable; winter temperatures may limit establishment |
+
+### 6. Caveats and limitations
+
+- **Biotic interactions not modelled:** Availability of suitable hosts (dogs, livestock, native wildlife) and competition with established native tick fauna (*Ixodes*, *Haemaphysalis*) are not captured by climate-only models.
+- **Microhabitat buffering:** Leaf litter and ground-level humidity can buffer macroclimatic aridity. Actual establishment risk in marginal areas may be higher than indicated by coarse-resolution climate grids.
+- **Niche truncation:** The native range may not sample the full fundamental niche. Warmer, drier conditions may be tolerable but are simply not present within the accessible area. This means predictions are conservative (true suitable area may be larger).
+- **Presence-only data limitations:** GBIF records reflect surveying effort as well as true distribution; target-group background corrects for this but does not eliminate collector bias entirely.
+- **Current climate only:** These projections do not account for climate change. Under future warming, the suitable zone would likely shift southward and potentially expand.
+
+---
+
+## Appendix: Model Configuration
+
+| Parameter | MaxEnt | BRT |
+|-----------|--------|-----|
+| Algorithm | maxent.jar (ENMeval 2.0) | dismo::gbm.step() |
+| Feature classes | LQH | — |
+| Regularization multiplier | 1.0 | — |
+| Tree complexity | — | 5 |
+| Learning rate | — | 0.001 |
+| Number of trees | — | 3,800 |
+| Cross-validation | Spatial block (4 folds) | 10-fold CV |
+| Background points | 10,000 (Ixodidae target-group) | Same |
+| Prevalence weighting | No | Yes (n_bg / n_pres ≈ 2.2×) |
+| Output scale | cloglog (0–1) | Logistic (0–1) |
+
+| Parameter | CLIMEX |
+|-----------|--------|
+| Source | Halliday & Sutherst (1990), implemented in WorldClim-based reimplementation |
+| Components | Growth Index (temperature), Moisture Index, Cold/Heat/Dry stress |
+| Output | Ecoclimatic Index (EI; 0–100, normalised to 0–1 for ensemble) |
+| Suitability threshold | EI > 0.10 (EI > 10 on raw scale) |
+| Native-range AUC | 0.684 (estimated via WorldClim bridge GAM, R² = 0.97) |
